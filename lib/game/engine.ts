@@ -1,5 +1,5 @@
 import { dealGame, type LobbyMember } from "./deck"
-import { addStats, emptyStats, scoreAll } from "./scoring"
+import { addStats, emptyStats, scoreAll, overcomesChallenge } from "./scoring"
 import { duelScore, statsTotal } from "./scoring"
 import type { GameState, PlayerState, Stats } from "./types"
 
@@ -97,18 +97,42 @@ function everyTableEmpty(state: GameState): boolean {
 function resolveBajo(state: GameState, feed: string[]) {
   const results = scoreAll(state.players, state.globalChallenge ?? emptyStats())
   state.results = results
-  const winner = results[0]
-  state.winnerId = winner.playerId
+
+  // Filter results to find who actually overcame the challenge in all dimensions
+  const eligibleResults = results.filter((r) => {
+    const p = state.players.find((pl) => pl.id === r.playerId)
+    return p ? overcomesChallenge(p, state.globalChallenge) : false
+  })
+
+  const winner = eligibleResults[0] // Highest score among those who overcame the challenge
+  state.winnerId = winner ? winner.playerId : null
+
   const caller = state.bajoBy
+  const callerPlayer = caller ? state.players.find((p) => p.id === caller) : null
+  const callerOvercomes = callerPlayer ? overcomesChallenge(callerPlayer, state.globalChallenge) : false
+
   // Creative challenge success depends on the vote outcome.
   const voteValues = Object.values(state.votes)
   const accepts = voteValues.filter((v) => v === "accept").length
   const rejects = voteValues.filter((v) => v === "reject").length
   const votePassed = voteValues.length === 0 ? true : accepts >= rejects
-  state.bajoSuccess = caller === winner.playerId && votePassed
+
+  // Caller succeeds if they are the winner (highest eligible), they overcame the challenge, and vote passed
+  state.bajoSuccess = Boolean(
+    caller &&
+      winner &&
+      caller === winner.playerId &&
+      callerOvercomes &&
+      votePassed
+  )
   state.votingOpen = false
   state.phase = "results"
-  feed.push(`Resultados calculados. Ganador: ${winner.name} (${winner.total} pts).`)
+
+  if (winner) {
+    feed.push(`Resultados calculados. Ganador: ${winner.name} (${winner.total} pts).`)
+  } else {
+    feed.push("Resultados calculados. ¡Nadie logró superar el Desafío Global en todas las áreas!")
+  }
 }
 
 export function applyAction(prev: GameState, action: GameAction): ReduceResult {

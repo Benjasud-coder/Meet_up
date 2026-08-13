@@ -1,10 +1,11 @@
 "use client"
 
-import { AlertTriangle, Crown, Hand, LogOut, Layers } from "lucide-react"
+import { AlertTriangle, Crown, Hand, LogOut, Layers, Check, X } from "lucide-react"
 import { DIMENSIONS, type GameState, type PlayerState } from "@/lib/game/types"
 import { DIMENSION_META } from "@/lib/game/constants"
 import { GameCard } from "./game-card"
 import { cn } from "@/lib/utils"
+import { sumAttributes, playerTotalStats } from "@/lib/game/scoring"
 
 function GlobalChallengeHeader({ state }: { state: GameState }) {
   const gc = state.globalChallenge
@@ -66,6 +67,81 @@ function OpponentSeat({ player, isActive }: { player: PlayerState; isActive: boo
         <span className="inline-flex items-center gap-1">
           <Hand className="size-3" /> Mano {player.hand.length}
         </span>
+      </div>
+    </div>
+  )
+}
+
+function ChosenAttributesSummary({
+  me,
+  globalChallenge,
+}: {
+  me: PlayerState
+  globalChallenge: Record<string, number> | null
+}) {
+  const handSum = sumAttributes(me.hand)
+  const totals = playerTotalStats(me)
+
+  return (
+    <div className="rounded-xl border border-border bg-input/10 p-3">
+      <h3 className="mb-2 text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground">
+        Tus Atributos y Desafío
+      </h3>
+      <div className="flex flex-col gap-1.5">
+        {DIMENSIONS.map((d) => {
+          const meta = DIMENSION_META[d]
+          const chosenVal = handSum[d]
+          const totalVal = totals[d]
+          const challengeVal = globalChallenge ? Math.abs(globalChallenge[d]) : 0
+          const overcome = totalVal > challengeVal
+
+          return (
+            <div
+              key={d}
+              className="flex items-center justify-between gap-1 rounded-lg bg-card/50 p-2 text-[0.7rem]"
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span
+                  className="flex size-5 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-bold"
+                  style={{
+                    backgroundColor: `color-mix(in oklch, ${meta.color} 18%, transparent)`,
+                    color: meta.color,
+                  }}
+                >
+                  {meta.short}
+                </span>
+                <span className="truncate font-semibold text-muted-foreground">{meta.label}</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-right shrink-0">
+                <div>
+                  <span className="text-[0.55rem] text-muted-foreground block leading-none">Mano</span>
+                  <span className="font-bold text-foreground">+{chosenVal}</span>
+                </div>
+                <div>
+                  <span className="text-[0.55rem] text-muted-foreground block leading-none">Total</span>
+                  <span className="font-bold text-foreground">{totalVal}</span>
+                </div>
+                <div className="border-l border-border pl-2">
+                  <span className="text-[0.55rem] text-muted-foreground block leading-none">Meta</span>
+                  <span className="font-semibold text-muted-foreground">
+                    {globalChallenge ? challengeVal : "—"}
+                  </span>
+                </div>
+                <div className="flex size-4 items-center justify-center">
+                  {globalChallenge ? (
+                    overcome ? (
+                      <Check className="size-3.5 text-emerald-500 shrink-0" />
+                    ) : (
+                      <X className="size-3.5 text-destructive shrink-0" />
+                    )
+                  ) : (
+                    <span className="text-muted-foreground text-[0.6rem]">—</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -152,11 +228,14 @@ export function GameBoard({
       {/* Player zone */}
       <section className="rounded-2xl border border-border bg-card/60 p-3">
         <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="sm:w-40 sm:shrink-0">
-            <p className="mb-1.5 text-[0.6rem] font-semibold uppercase tracking-wider text-muted-foreground">
-              Tu Avatar
-            </p>
-            <GameCard card={me.avatar} kind="avatar" />
+          <div className="flex flex-col gap-3 sm:w-48 sm:shrink-0">
+            <div>
+              <p className="mb-1.5 text-[0.6rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                Tu Avatar
+              </p>
+              <GameCard card={me.avatar} kind="avatar" />
+            </div>
+            <ChosenAttributesSummary me={me} globalChallenge={state.globalChallenge} />
           </div>
 
           <div className="flex-1">

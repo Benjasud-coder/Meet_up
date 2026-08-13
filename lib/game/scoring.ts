@@ -54,3 +54,27 @@ export function duelScore(a: Stats, b: Stats): { aWins: number; bWins: number } 
   }
   return { aWins, bWins }
 }
+
+/** Returns the total stats (Avatar + Hand attributes) for a player per dimension. */
+export function playerTotalStats(player: PlayerState): Stats {
+  const handSum = sumAttributes(player.hand)
+  return {
+    espiritual: player.avatar.stats.espiritual + handSum.espiritual,
+    intelectual: player.avatar.stats.intelectual + handSum.intelectual,
+    fisica: player.avatar.stats.fisica + handSum.fisica,
+    social: player.avatar.stats.social + handSum.social,
+  }
+}
+
+/** Checks if a player's total stats in every dimension exceed the challenge magnitude. */
+export function overcomesChallenge(player: PlayerState, globalChallenge: Stats | null): boolean {
+  if (!globalChallenge) return true
+  const totals = playerTotalStats(player)
+  for (const d of DIMENSIONS) {
+    if (totals[d] <= Math.abs(globalChallenge[d])) {
+      return false
+    }
+  }
+  return true
+}
+

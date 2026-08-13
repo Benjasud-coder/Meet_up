@@ -82,4 +82,12 @@ export interface GameState {
   results: ScoreBreakdown[] | null
   winnerId: string | null
   bajoSuccess: boolean | null
+
+  /** Match-level fields for best-of-N rounds */
+  totalRounds: number
+  roundWins: Record<string, number>
+  /** 1-based number indicating current round within the match */
+  matchRoundNumber: number
+  /** Set when a player wins the overall match */
+  overallWinnerId?: string | null
 }

@@ -42,20 +42,20 @@ export const ATTRIBUTES: AttributeCard[] = [
   { id: "at20", nombre: "Versatilidad", stats: s(25, 25, 25, 25) },
 ]
 
-/** 12 challenges (6 specific, 6 creative) — each distributes -100 points. */
+/** 12 challenges (6 specific, 6 creative) — each distributes 100 points of penalty. */
 export const CHALLENGES: ChallengeCard[] = [
-  { id: "ch1", nombre: "Crisis de Fe", tipo: "Específico", stats: s(-60, -15, -10, -15) },
-  { id: "ch2", nombre: "Duda Existencial", tipo: "Específico", stats: s(-50, -25, -10, -15) },
-  { id: "ch3", nombre: "Bloqueo Mental", tipo: "Específico", stats: s(-15, -60, -10, -15) },
-  { id: "ch4", nombre: "Confusión", tipo: "Específico", stats: s(-15, -55, -15, -15) },
-  { id: "ch5", nombre: "Agotamiento", tipo: "Específico", stats: s(-10, -15, -60, -15) },
-  { id: "ch6", nombre: "Aislamiento", tipo: "Específico", stats: s(-15, -15, -10, -60) },
-  { id: "ch7", nombre: "El Vacío Interior", tipo: "Creativo", stats: s(-45, -25, -15, -15) },
-  { id: "ch8", nombre: "La Torre de Marfil", tipo: "Creativo", stats: s(-15, -50, -20, -15) },
-  { id: "ch9", nombre: "La Tormenta", tipo: "Creativo", stats: s(-20, -20, -45, -15) },
-  { id: "ch10", nombre: "El Espejo Roto", tipo: "Creativo", stats: s(-15, -20, -20, -45) },
-  { id: "ch11", nombre: "El Laberinto", tipo: "Creativo", stats: s(-25, -35, -25, -15) },
-  { id: "ch12", nombre: "La Máscara", tipo: "Creativo", stats: s(-20, -25, -15, -40) },
+  { id: "ch1", nombre: "Crisis de Fe", tipo: "Específico", stats: s(60, 15, 10, 15) },
+  { id: "ch2", nombre: "Duda Existencial", tipo: "Específico", stats: s(50, 25, 10, 15) },
+  { id: "ch3", nombre: "Bloqueo Mental", tipo: "Específico", stats: s(15, 60, 10, 15) },
+  { id: "ch4", nombre: "Confusión", tipo: "Específico", stats: s(15, 55, 15, 15) },
+  { id: "ch5", nombre: "Agotamiento", tipo: "Específico", stats: s(10, 15, 60, 15) },
+  { id: "ch6", nombre: "Aislamiento", tipo: "Específico", stats: s(15, 15, 10, 60) },
+  { id: "ch7", nombre: "El Vacío Interior", tipo: "Creativo", stats: s(45, 25, 15, 15) },
+  { id: "ch8", nombre: "La Torre de Marfil", tipo: "Creativo", stats: s(15, 50, 20, 15) },
+  { id: "ch9", nombre: "La Tormenta", tipo: "Creativo", stats: s(20, 20, 45, 15) },
+  { id: "ch10", nombre: "El Espejo Roto", tipo: "Creativo", stats: s(15, 20, 20, 45) },
+  { id: "ch11", nombre: "El Laberinto", tipo: "Creativo", stats: s(25, 35, 25, 15) },
+  { id: "ch12", nombre: "La Máscara", tipo: "Creativo", stats: s(20, 25, 15, 40) },
 ]
 
 function shuffle<T>(arr: T[]): T[] {

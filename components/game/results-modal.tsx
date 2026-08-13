@@ -23,6 +23,9 @@ export function ResultsModal({
     1,
     ...results.flatMap((r) => DIMENSIONS.map((d) => Math.abs(r.perDimension[d]))),
   )
+  const requiredWins = Math.ceil(state.totalRounds / 2)
+  const isMatchOver = state.overallWinnerId !== null && state.overallWinnerId !== undefined
+  const matchWinner = isMatchOver ? state.players.find((p) => p.id === state.overallWinnerId) : null
 
   return (
     <Modal labelledBy="results-title" className="max-w-xl">
@@ -31,11 +34,39 @@ export function ResultsModal({
           <Trophy className="size-6" />
         </span>
         <h2 id="results-title" className="mt-2 text-xl font-bold">
-          Resultados de la Partida
+          {isMatchOver ? "¡Partida Terminada!" : "Resultados de la Ronda"}
         </h2>
-        {winner ? (
+
+        {/* Match progress */}
+        <p className="mt-2 text-xs text-muted-foreground font-medium">
+          Ronda {state.matchRoundNumber} de {state.totalRounds}
+        </p>
+
+        {/* Score board */}
+        <div className="mt-2 flex justify-center gap-4 text-sm">
+          {state.players.map((p) => (
+            <div key={p.id} className="flex items-center gap-1">
+              <span className="font-semibold">{p.name}:</span>
+              <span
+                className={cn(
+                  "tabular-nums font-bold",
+                  state.roundWins[p.id] >= requiredWins ? "text-emerald-500" : "text-muted-foreground",
+                )}
+              >
+                {state.roundWins[p.id]}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Round winner or overall winner */}
+        {isMatchOver && matchWinner ? (
+          <p className="mt-2 text-base font-bold text-emerald-500">
+            🎉 {matchWinner.name} ganó la partida con {state.roundWins[matchWinner.id]} de {state.totalRounds} rondas
+          </p>
+        ) : winner ? (
           <p className="mt-1 text-sm text-muted-foreground">
-            Ganador: <span className="font-semibold text-foreground">{winner.name}</span> con{" "}
+            Ganador de la ronda: <span className="font-semibold text-foreground">{winner.name}</span> con{" "}
             {winner.total} puntos.
           </p>
         ) : (
@@ -139,11 +170,13 @@ export function ResultsModal({
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:translate-y-px"
           >
             <RotateCcw className="size-4" />
-            Jugar de nuevo
+            {isMatchOver ? "Volver al lobby" : "Siguiente ronda"}
           </button>
         ) : (
           <p className="text-center text-sm text-muted-foreground">
-            Esperando a que el anfitrión inicie una nueva partida.
+            {isMatchOver
+              ? "Esperando a que el anfitrión vuelva a la sala de espera."
+              : "Esperando a que el anfitrión inicie la siguiente ronda."}
           </p>
         )}
       </div>

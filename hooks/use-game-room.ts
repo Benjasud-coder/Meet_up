@@ -205,23 +205,32 @@ export function useGameRoom({ code, playerId, name, isHost }: UseGameRoomArgs) {
 
   const playAgain = useCallback(() => {
     if (!isHost) return
-    gameStateRef.current = null
-    setGameState(null)
-    broadcast("game_state", { state: null })
-    broadcast("reset_ready", {})
-    readyRef.current = false
-    setReady(false)
-    channelRef.current?.track({
-      id: playerId,
-      name,
-      isHost,
-      ready: false,
-      online_at: joinedAt.current,
-    })
-    const msg = "Volviendo a la sala de espera para una nueva partida."
-    pushFeed(msg)
-    broadcast("feed", { message: msg })
-  }, [isHost, broadcast, pushFeed, playerId, name])
+    const cur = gameStateRef.current
+    if (!cur) return
+
+    // If there's an overall winner, end the match and go back to lobby
+    if (cur.overallWinnerId) {
+      gameStateRef.current = null
+      setGameState(null)
+      broadcast("game_state", { state: null })
+      broadcast("reset_ready", {})
+      readyRef.current = false
+      setReady(false)
+      channelRef.current?.track({
+        id: playerId,
+        name,
+        isHost,
+        ready: false,
+        online_at: joinedAt.current,
+      })
+      const msg = "Partida terminada. Volviendo a la sala de espera."
+      pushFeed(msg)
+      broadcast("feed", { message: msg })
+    } else {
+      // Otherwise, advance to the next round
+      processAction({ type: "advance_round", playerId })
+    }
+  }, [isHost, playerId, processAction, broadcast, pushFeed, name])
 
   return {
     status,

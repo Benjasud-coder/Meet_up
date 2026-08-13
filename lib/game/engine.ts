@@ -5,7 +5,7 @@ import type { GameState, PlayerState, Stats } from "./types"
 
 export type GameAction =
   | { type: "duel_choice"; playerId: string; attributeId: string }
-  | { type: "global_choice"; playerId: string; challengeId: string }
+  | { type: "global_choice"; playerId: string; challengeId: string; customName?: string }
   | { type: "draw"; playerId: string; attributeId: string }
   | { type: "bajo"; playerId: string }
   | { type: "steal"; playerId: string; targetPlayerId: string }
@@ -80,7 +80,11 @@ function resolveGlobalChallenge(state: GameState, feed: string[]) {
     const ch = p.tableChallenges.find((c) => c.id === p.globalChoice)
     if (ch) {
       combined = addStats(combined, ch.stats)
-      cards.push({ name: ch.nombre, tipo: ch.tipo })
+      // Use the player's custom name if they provided one for a creative challenge
+      const displayName = (ch.tipo === "Creativo" && p.customChallengeName)
+        ? p.customChallengeName
+        : ch.nombre
+      cards.push({ name: displayName, tipo: ch.tipo })
     }
   }
   state.globalChallenge = combined
@@ -159,6 +163,10 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       const p = player(state, action.playerId)
       if (!p || p.globalChoice) break
       p.globalChoice = action.challengeId
+      // Store the custom name if provided
+      if (action.customName?.trim()) {
+        p.customChallengeName = action.customName.trim()
+      }
       feed.push(`${p.name} seleccionó en secreto su Desafío.`)
       if (state.players.every((pl) => pl.globalChoice)) resolveGlobalChallenge(state, feed)
       break

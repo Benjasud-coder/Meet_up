@@ -50,6 +50,8 @@ export interface PlayerState {
   duelChoice: string | null
   /** Challenge chosen to contribute to the Global Challenge. */
   globalChoice: string | null
+  /** Custom name provided by the player for a creative challenge. */
+  customChallengeName: string | null
   /** Whether the player drew an attribute this round. */
   drewThisRound: boolean
 }

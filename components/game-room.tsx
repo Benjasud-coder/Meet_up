@@ -104,8 +104,8 @@ export function GameRoom({
           state={gameState}
           me={me}
           onSelectDuel={(attributeId) => room.dispatch({ type: "duel_choice", playerId, attributeId })}
-          onSelectGlobal={(challengeId) =>
-            room.dispatch({ type: "global_choice", playerId, challengeId })
+          onSelectGlobal={(challengeId, customName) =>
+            room.dispatch({ type: "global_choice", playerId, challengeId, customName })
           }
         />
       )}

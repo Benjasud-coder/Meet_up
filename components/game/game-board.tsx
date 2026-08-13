@@ -79,7 +79,12 @@ function ChosenAttributesSummary({
   me: PlayerState
   globalChallenge: Record<string, number> | null
 }) {
-  const handSum = sumAttributes(me.hand.filter((a) => a.id !== me.duelChoice))
+  // Only exclude duelChoice if it's a valid ID and the card is actually in hand
+  const handSum = sumAttributes(
+    me.hand.filter((a) =>
+      !me.duelChoice || a.id !== me.duelChoice
+    )
+  )
   const totals = playerTotalStats(me)
 
   return (

@@ -26,6 +26,7 @@ export function statsTotal(stats: Stats): number {
  * Puntaje_Final = suma de las 4 dimensiones.
  */
 export function scorePlayer(player: PlayerState, globalChallenge: Stats): ScoreBreakdown {
+  // La mano EXCLUYE deliberatemente la carta usada en el duelo (duelChoice)
   const filteredHand = player.hand.filter((a) => a.id !== player.duelChoice)
   const handSum = sumAttributes(filteredHand)
   const perDimension = emptyStats()

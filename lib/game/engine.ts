@@ -2,6 +2,7 @@ import { dealGame, type LobbyMember } from "./deck"
 import { addStats, emptyStats, scoreAll, overcomesChallenge } from "./scoring"
 import { duelScore, statsTotal } from "./scoring"
 import type { GameState, PlayerState, Stats } from "./types"
+import { DEFAULT_TOTAL_ROUNDS } from "./constants"
 
 export type GameAction =
   | { type: "duel_choice"; playerId: string; attributeId: string }
@@ -18,6 +19,10 @@ export interface ReduceResult {
 /** Creates a fresh game (deals cards) for the given lobby members. */
 export function startGame(code: string, members: LobbyMember[]): GameState {
   const players = dealGame(members)
+  // Initialize roundWins map
+  const roundWins: Record<string, number> = {}
+  for (const m of members) roundWins[m.id] = 0
+
   return {
     code,
     phase: "duel",
@@ -33,6 +38,12 @@ export function startGame(code: string, members: LobbyMember[]): GameState {
     results: null,
     winnerId: null,
     bajoSuccess: null,
+
+    // Match-level fields
+    totalRounds: DEFAULT_TOTAL_ROUNDS,
+    roundWins,
+    matchRoundNumber: 1,
+    overallWinnerId: null,
   }
 }
 
@@ -98,6 +109,93 @@ function everyTableEmpty(state: GameState): boolean {
   return state.players.every((p) => p.tableAttributes.length === 0)
 }
 
+/** Compute the eligible winner (first in ordered results who overcomes the challenge) */
+function computeWinnerFromResults(state: GameState, results: { playerId: string; name: string; perDimension: Stats; total: number }[] | null) {
+  if (!results) return null
+  const eligible = results.filter((r) => {
+    const p = state.players.find((pl) => pl.id === r.playerId)
+    return p ? overcomesChallenge(p, state.globalChallenge) : false
+  })
+  return eligible[0] ?? null
+}
+
+/** Start next round: re-deal attributes & challenges while preserving avatars.
+ *  Preserves: avatars (kept from previous players), roundWins, totalRounds, matchRoundNumber.
+ *  Resets per-round fields: tableAttributes, tableChallenges, hand, duelChoice, globalChoice, customChallengeName, drewThisRound, etc.
+ */
+function startNextRound(state: GameState) {
+  // Build roster from existing players (id/name/isHost)
+  const roster: LobbyMember[] = state.players.map((p) => ({ id: p.id, name: p.name, isHost: p.isHost }))
+  const newPlayers = dealGame(roster)
+
+  // Preserve previous avatars
+  const avatarById = state.players.reduce<Record<string, typeof state.players[0]["avatar"]>>((acc, p) => {
+    acc[p.id] = p.avatar
+    return acc
+  }, {})
+
+  // Replace newPlayers' avatars with preserved ones, and clear per-round fields
+  state.players = newPlayers.map((np) => {
+    const preservedAvatar = avatarById[np.id]
+    return {
+      ...np,
+      avatar: preservedAvatar ?? np.avatar,
+      hand: [],
+      duelChoice: null,
+      globalChoice: null,
+      customChallengeName: null,
+      drewThisRound: false,
+    }
+  })
+
+  // Reset match-level round fields that belong to per-round lifecycle
+  state.activePlayerId = null
+  state.duelWinnerId = null
+  state.bajoBy = null
+  state.votingOpen = false
+  state.votes = {}
+  state.results = null
+  state.winnerId = null
+  state.bajoSuccess = null
+  state.globalChallenge = null
+  state.globalChallengeCards = []
+  state.round = 0
+}
+
+/** Handle end-of-round bookkeeping: increment roundWins (if a winner), check match finish,
+ *  and either finalize overall winner or prepare the next round.
+ */
+function finishRoundAndMaybeAdvance(state: GameState, feed: string[]) {
+  // Determine winner from state.results (if any)
+  const winnerResult = computeWinnerFromResults(state, state.results)
+  const winnerId = winnerResult ? winnerResult.playerId : null
+
+  if (winnerId) {
+    state.roundWins[winnerId] = (state.roundWins[winnerId] ?? 0) + 1
+    feed.push(`${winnerResult!.name} ganó la ronda ${state.matchRoundNumber}.`)
+  } else {
+    feed.push(`Ronda ${state.matchRoundNumber} finalizada sin ganador.`)
+  }
+
+  const requiredWins = Math.ceil(state.totalRounds / 2)
+  const overallWinner = Object.entries(state.roundWins).find(([, w]) => w >= requiredWins)
+  if (overallWinner) {
+    // Finish match
+    state.overallWinnerId = overallWinner[0]
+    state.phase = "results"
+    const winnerPlayer = state.players.find((p) => p.id === state.overallWinnerId)
+    const wins = state.roundWins[state.overallWinnerId]
+    feed.push(`${winnerPlayer ? winnerPlayer.name : state.overallWinnerId} ganó la partida (${wins} de ${state.totalRounds} rondas).`)
+    return
+  }
+
+  // Otherwise advance to next round
+  state.matchRoundNumber += 1
+  startNextRound(state)
+  state.phase = "duel"
+  feed.push(`Comienza la ronda ${state.matchRoundNumber}.`)
+}
+
 function resolveBajo(state: GameState, feed: string[]) {
   const results = scoreAll(state.players, state.globalChallenge ?? emptyStats())
   state.results = results
@@ -118,29 +216,37 @@ function resolveBajo(state: GameState, feed: string[]) {
   // Caller succeeds if they are the winner (highest eligible) and they overcame the challenge
   state.bajoSuccess = Boolean(
     caller &&
-      winner &&
-      caller === winner.playerId &&
-      callerOvercomes
+    winner &&
+    caller === winner.playerId &&
+    callerOvercomes
   )
   state.votingOpen = false
 
   if (winner) {
     feed.push(`Resultados calculados. Ganador provisional: ${winner.name} (${winner.total} pts).`)
-    
+
     // Check if there are losers who have cards in hand (excluding their duelChoice card)
     const targetsWithCards = state.players.filter(
       (p) => p.id !== winner.playerId && p.hand.filter((a) => a.id !== p.duelChoice).length > 0
     )
-    
+
     if (targetsWithCards.length > 0) {
       state.phase = "steal"
       feed.push(`¡Fase de robo activada! ${winner.name} elegirá un atributo al azar de un perdedor.`)
+      // Do not finish the round yet — wait for the steal action to complete or be skipped.
+      return
     } else {
+      // No steal possible -> finalize round immediately
       state.phase = "results"
+      finishRoundAndMaybeAdvance(state, feed)
+      return
     }
   } else {
     state.phase = "results"
     feed.push("Resultados calculados. ¡Nadie logró superar el Desafío Global en todas las áreas!")
+    // Finalize round (no winner)
+    finishRoundAndMaybeAdvance(state, feed)
+    return
   }
 }
 
@@ -225,7 +331,15 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
 
       // Filter out the duel choice from the target's hand so they don't lose that one
       const stealableCards = target.hand.filter((a) => a.id !== target.duelChoice)
-      if (stealableCards.length === 0) break
+      if (stealableCards.length === 0) {
+        // Nothing to steal; finalize round
+        // Recalculate scores and finalize
+        const finalResultsNoSteal = scoreAll(state.players, state.globalChallenge ?? emptyStats())
+        state.results = finalResultsNoSteal
+        state.phase = "results"
+        finishRoundAndMaybeAdvance(state, feed)
+        break
+      }
 
       const randomIdx = Math.floor(Math.random() * stealableCards.length)
       const chosenCard = stealableCards[randomIdx]
@@ -240,10 +354,11 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
         feed.push(`¡El ganador ${winnerPlayer.name} robó al azar la carta "${chosenCard.nombre}" de la mano de ${target.name}!`)
       }
 
-      // Recalculate scores and winner
+      // Recalculate scores and winner, then finalize round
       const finalResults = scoreAll(state.players, state.globalChallenge ?? emptyStats())
       state.results = finalResults
       state.phase = "results"
+      finishRoundAndMaybeAdvance(state, feed)
       break
     }
   }

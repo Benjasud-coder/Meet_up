@@ -31,6 +31,7 @@ export type GamePhase =
   | "global_challenge"
   | "playing"
   | "voting"
+  | "steal"
   | "results"
 
 /** Full state for a single player. Held authoritatively by the host and broadcast to all. */

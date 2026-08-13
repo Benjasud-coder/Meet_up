@@ -8,7 +8,7 @@ export type GameAction =
   | { type: "global_choice"; playerId: string; challengeId: string }
   | { type: "draw"; playerId: string; attributeId: string }
   | { type: "bajo"; playerId: string }
-  | { type: "vote"; playerId: string; vote: "accept" | "reject" }
+  | { type: "steal"; playerId: string; targetPlayerId: string }
 
 export interface ReduceResult {
   state: GameState
@@ -111,26 +111,31 @@ function resolveBajo(state: GameState, feed: string[]) {
   const callerPlayer = caller ? state.players.find((p) => p.id === caller) : null
   const callerOvercomes = callerPlayer ? overcomesChallenge(callerPlayer, state.globalChallenge) : false
 
-  // Creative challenge success depends on the vote outcome.
-  const voteValues = Object.values(state.votes)
-  const accepts = voteValues.filter((v) => v === "accept").length
-  const rejects = voteValues.filter((v) => v === "reject").length
-  const votePassed = voteValues.length === 0 ? true : accepts >= rejects
-
-  // Caller succeeds if they are the winner (highest eligible), they overcame the challenge, and vote passed
+  // Caller succeeds if they are the winner (highest eligible) and they overcame the challenge
   state.bajoSuccess = Boolean(
     caller &&
       winner &&
       caller === winner.playerId &&
-      callerOvercomes &&
-      votePassed
+      callerOvercomes
   )
   state.votingOpen = false
-  state.phase = "results"
 
   if (winner) {
-    feed.push(`Resultados calculados. Ganador: ${winner.name} (${winner.total} pts).`)
+    feed.push(`Resultados calculados. Ganador provisional: ${winner.name} (${winner.total} pts).`)
+    
+    // Check if there are losers who have cards in hand (excluding their duelChoice card)
+    const targetsWithCards = state.players.filter(
+      (p) => p.id !== winner.playerId && p.hand.filter((a) => a.id !== p.duelChoice).length > 0
+    )
+    
+    if (targetsWithCards.length > 0) {
+      state.phase = "steal"
+      feed.push(`¡Fase de robo activada! ${winner.name} elegirá un atributo al azar de un perdedor.`)
+    } else {
+      state.phase = "results"
+    }
   } else {
+    state.phase = "results"
     feed.push("Resultados calculados. ¡Nadie logró superar el Desafío Global en todas las áreas!")
   }
 }
@@ -188,15 +193,7 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       if (everyTableEmpty(state)) {
         feed.push("Se agotaron los Atributos en mesa. Resolviendo la partida...")
         state.bajoBy = state.activePlayerId
-        // If a creative challenge is in play, open voting; otherwise resolve.
-        const hasCreative = state.globalChallengeCards.some((c) => c.tipo === "Creativo")
-        if (hasCreative) {
-          state.votingOpen = true
-          state.votes = {}
-          state.phase = "voting"
-        } else {
-          resolveBajo(state, feed)
-        }
+        resolveBajo(state, feed)
       }
       break
     }
@@ -208,24 +205,37 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       if (!p) break
       state.bajoBy = action.playerId
       feed.push(`¡${p.name} ha dicho BAJO!`)
-      const hasCreative = state.globalChallengeCards.some((c) => c.tipo === "Creativo")
-      if (hasCreative) {
-        state.votingOpen = true
-        state.votes = {}
-        state.phase = "voting"
-      } else {
-        resolveBajo(state, feed)
-      }
+      resolveBajo(state, feed)
       break
     }
-    case "vote": {
-      if (state.phase !== "voting") break
-      if (action.playerId === state.bajoBy) break
-      state.votes[action.playerId] = action.vote
-      const voters = state.players.filter((pl) => pl.id !== state.bajoBy)
-      if (voters.every((v) => state.votes[v.id])) {
-        resolveBajo(state, feed)
+    case "steal": {
+      if (state.phase !== "steal") break
+      if (action.playerId !== state.winnerId) break
+
+      const target = player(state, action.targetPlayerId)
+      if (!target) break
+
+      // Filter out the duel choice from the target's hand so they don't lose that one
+      const stealableCards = target.hand.filter((a) => a.id !== target.duelChoice)
+      if (stealableCards.length === 0) break
+
+      const randomIdx = Math.floor(Math.random() * stealableCards.length)
+      const chosenCard = stealableCards[randomIdx]
+
+      // Remove chosenCard from target's hand
+      target.hand = target.hand.filter((a) => a.id !== chosenCard.id)
+
+      // Add it to the winner's hand
+      const winnerPlayer = player(state, state.winnerId)
+      if (winnerPlayer) {
+        winnerPlayer.hand.push(chosenCard)
+        feed.push(`¡El ganador ${winnerPlayer.name} robó al azar la carta "${chosenCard.nombre}" de la mano de ${target.name}!`)
       }
+
+      // Recalculate scores and winner
+      const finalResults = scoreAll(state.players, state.globalChallenge ?? emptyStats())
+      state.results = finalResults
+      state.phase = "results"
       break
     }
   }

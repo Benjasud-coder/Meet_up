@@ -150,6 +150,13 @@ function startNextRound(state: GameState, startingPlayerId?: string | null) {
     }
   })
 
+  // ASEGURAR que duelChoice está limpio en todos los jugadores
+  state.players.forEach((p) => {
+    p.duelChoice = null
+    p.globalChoice = null
+    p.hand = []
+  })
+
   // Reset match-level round fields that belong to per-round lifecycle
   // Set activePlayerId to the provided starting player (previous round winner) if any, otherwise null
   state.activePlayerId = startingPlayerId ?? null

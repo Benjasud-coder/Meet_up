@@ -71,12 +71,15 @@ export function playerTotalStats(player: PlayerState): Stats {
 /** Checks if a player's total stats in every dimension exceed the challenge magnitude. */
 export function overcomesChallenge(player: PlayerState, globalChallenge: Stats | null): boolean {
   if (!globalChallenge) return true
-  const totals = playerTotalStats(player)
+  // Compute effective per-dimension AFTER applying the global challenge penalty
+  const filteredHand = player.hand.filter((a) => a.id !== player.duelChoice)
+  const handSum = sumAttributes(filteredHand)
   for (const d of DIMENSIONS) {
-    if (totals[d] <= Math.abs(globalChallenge[d])) {
+    const effective = player.avatar.stats[d] + handSum[d] - globalChallenge[d]
+    // Require strictly positive result to consider the challenge overcome
+    if (effective <= 0) {
       return false
     }
   }
   return true
 }
-

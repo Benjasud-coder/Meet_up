@@ -373,7 +373,7 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       const startingId = state.winnerId ?? null
       state.matchRoundNumber += 1
       startNextRound(state, startingId)
-      
+
       // Rondas 2+ comienzan con global challenge (sin duelo), el ganador anterior es el activePlayerId
       state.phase = "global_challenge"
       state.activePlayerId = startingId

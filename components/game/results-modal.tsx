@@ -91,8 +91,8 @@ export function ResultsModal({
                 {state.winnerId === null
                   ? "Nadie superó el Desafío Global."
                   : !overcomesChallenge(caller, state.globalChallenge)
-                  ? "No superó el Desafío Global en las 4 dimensiones."
-                  : "Otro jugador obtuvo un mayor puntaje superando el Desafío."}
+                    ? "No superó el Desafío Global en las 4 dimensiones."
+                    : "Otro jugador obtuvo un mayor puntaje superando el Desafío."}
               </span>
             )}
           </div>

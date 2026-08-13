@@ -18,7 +18,7 @@ export const AVATARS: AvatarCard[] = [
   { id: "av6", nombre: "La Errante", stats: s(9, 4, 9, 8) },
 ]
 
-/** 20 varied attributes — each distributes +100 positive points. */
+/** 40 varied attributes — each distributes +100 positive points. */
 export const ATTRIBUTES: AttributeCard[] = [
   { id: "at1", nombre: "Meditación Profunda", stats: s(60, 20, 10, 10) },
   { id: "at2", nombre: "Fe Inquebrantable", stats: s(70, 10, 5, 15) },
@@ -40,9 +40,29 @@ export const ATTRIBUTES: AttributeCard[] = [
   { id: "at18", nombre: "Disciplina", stats: s(25, 30, 35, 10) },
   { id: "at19", nombre: "Coraje", stats: s(20, 15, 40, 25) },
   { id: "at20", nombre: "Versatilidad", stats: s(25, 25, 25, 25) },
+  { id: "at21", nombre: "Compasión", stats: s(40, 20, 15, 25) },
+  { id: "at22", nombre: "Paciencia", stats: s(55, 20, 10, 15) },
+  { id: "at23", nombre: "Inteligencia Emocional", stats: s(25, 30, 15, 30) },
+  { id: "at24", nombre: "Creatividad", stats: s(20, 45, 15, 20) },
+  { id: "at25", nombre: "Pensamiento Crítico", stats: s(15, 55, 10, 20) },
+  { id: "at26", nombre: "Resolución de Problemas", stats: s(10, 60, 15, 15) },
+  { id: "at27", nombre: "Concentración", stats: s(20, 50, 15, 15) },
+  { id: "at28", nombre: "Memoria Excepcional", stats: s(15, 65, 10, 10) },
+  { id: "at29", nombre: "Intuición Aguda", stats: s(35, 30, 10, 25) },
+  { id: "at30", nombre: "Adaptabilidad", stats: s(20, 25, 20, 35) },
+  { id: "at31", nombre: "Fortaleza Mental", stats: s(40, 25, 20, 15) },
+  { id: "at32", nombre: "Tenacidad", stats: s(25, 20, 35, 20) },
+  { id: "at33", nombre: "Atletismo", stats: s(5, 15, 65, 15) },
+  { id: "at34", nombre: "Equilibrio", stats: s(10, 20, 50, 20) },
+  { id: "at35", nombre: "Precisión", stats: s(15, 40, 30, 15) },
+  { id: "at36", nombre: "Movilidad", stats: s(10, 15, 60, 15) },
+  { id: "at37", nombre: "Confianza", stats: s(20, 20, 15, 45) },
+  { id: "at38", nombre: "Magnetismo Personal", stats: s(15, 15, 10, 60) },
+  { id: "at39", nombre: "Influencia", stats: s(15, 20, 10, 55) },
+  { id: "at40", nombre: "Camaradería", stats: s(25, 15, 10, 50) },
 ]
 
-/** 12 challenges (6 specific, 6 creative) — each distributes 100 points of penalty. */
+/** 24 challenges (12 specific, 12 creative) — each distributes 100 points of penalty. */
 export const CHALLENGES: ChallengeCard[] = [
   { id: "ch1", nombre: "Crisis de Fe", tipo: "Específico", stats: s(60, 15, 10, 15) },
   { id: "ch2", nombre: "Duda Existencial", tipo: "Específico", stats: s(50, 25, 10, 15) },
@@ -50,12 +70,24 @@ export const CHALLENGES: ChallengeCard[] = [
   { id: "ch4", nombre: "Confusión", tipo: "Específico", stats: s(15, 55, 15, 15) },
   { id: "ch5", nombre: "Agotamiento", tipo: "Específico", stats: s(10, 15, 60, 15) },
   { id: "ch6", nombre: "Aislamiento", tipo: "Específico", stats: s(15, 15, 10, 60) },
-  { id: "ch7", nombre: "El Vacío Interior", tipo: "Creativo", stats: s(45, 25, 15, 15) },
-  { id: "ch8", nombre: "La Torre de Marfil", tipo: "Creativo", stats: s(15, 50, 20, 15) },
-  { id: "ch9", nombre: "La Tormenta", tipo: "Creativo", stats: s(20, 20, 45, 15) },
-  { id: "ch10", nombre: "El Espejo Roto", tipo: "Creativo", stats: s(15, 20, 20, 45) },
-  { id: "ch11", nombre: "El Laberinto", tipo: "Creativo", stats: s(25, 35, 25, 15) },
-  { id: "ch12", nombre: "La Máscara", tipo: "Creativo", stats: s(20, 25, 15, 40) },
+  { id: "ch7", nombre: "Autocompasión Excesiva", tipo: "Específico", stats: s(55, 20, 15, 10) },
+  { id: "ch8", nombre: "Rigidez Mental", tipo: "Específico", stats: s(20, 55, 15, 10) },
+  { id: "ch9", nombre: "Parálisis", tipo: "Específico", stats: s(15, 20, 55, 10) },
+  { id: "ch10", nombre: "Inseguridad", tipo: "Específico", stats: s(20, 15, 15, 50) },
+  { id: "ch11", nombre: "Burnout Espiritual", tipo: "Específico", stats: s(50, 20, 20, 10) },
+  { id: "ch12", nombre: "Desconexión Social", tipo: "Específico", stats: s(15, 15, 15, 55) },
+  { id: "ch13", nombre: "El Vacío Interior", tipo: "Creativo", stats: s(45, 25, 15, 15) },
+  { id: "ch14", nombre: "La Torre de Marfil", tipo: "Creativo", stats: s(15, 50, 20, 15) },
+  { id: "ch15", nombre: "La Tormenta", tipo: "Creativo", stats: s(20, 20, 45, 15) },
+  { id: "ch16", nombre: "El Espejo Roto", tipo: "Creativo", stats: s(15, 20, 20, 45) },
+  { id: "ch17", nombre: "El Laberinto", tipo: "Creativo", stats: s(25, 35, 25, 15) },
+  { id: "ch18", nombre: "La Máscara", tipo: "Creativo", stats: s(20, 25, 15, 40) },
+  { id: "ch19", nombre: "El Abismo", tipo: "Creativo", stats: s(40, 30, 15, 15) },
+  { id: "ch20", nombre: "Las Cadenas", tipo: "Creativo", stats: s(20, 20, 45, 15) },
+  { id: "ch21", nombre: "El Eco", tipo: "Creativo", stats: s(30, 40, 15, 15) },
+  { id: "ch22", nombre: "La Niebla", tipo: "Creativo", stats: s(25, 25, 25, 25) },
+  { id: "ch23", nombre: "El Silencio", tipo: "Creativo", stats: s(35, 20, 20, 25) },
+  { id: "ch24", nombre: "La Sombra", tipo: "Creativo", stats: s(20, 30, 25, 25) },
 ]
 
 function shuffle<T>(arr: T[]): T[] {

@@ -10,6 +10,7 @@ export type GameAction =
   | { type: "draw"; playerId: string; attributeId: string }
   | { type: "bajo"; playerId: string }
   | { type: "steal"; playerId: string; targetPlayerId: string }
+  | { type: "advance_round"; playerId: string }
 
 export interface ReduceResult {
   state: GameState
@@ -122,8 +123,9 @@ function computeWinnerFromResults(state: GameState, results: { playerId: string;
 /** Start next round: re-deal attributes & challenges while preserving avatars.
  *  Preserves: avatars (kept from previous players), roundWins, totalRounds, matchRoundNumber.
  *  Resets per-round fields: tableAttributes, tableChallenges, hand, duelChoice, globalChoice, customChallengeName, drewThisRound, etc.
+ *  Accepts an optional startingPlayerId to set who begins the next round (previous round winner).
  */
-function startNextRound(state: GameState) {
+function startNextRound(state: GameState, startingPlayerId?: string | null) {
   // Build roster from existing players (id/name/isHost)
   const roster: LobbyMember[] = state.players.map((p) => ({ id: p.id, name: p.name, isHost: p.isHost }))
   const newPlayers = dealGame(roster)
@@ -149,7 +151,8 @@ function startNextRound(state: GameState) {
   })
 
   // Reset match-level round fields that belong to per-round lifecycle
-  state.activePlayerId = null
+  // Set activePlayerId to the provided starting player (previous round winner) if any, otherwise null
+  state.activePlayerId = startingPlayerId ?? null
   state.duelWinnerId = null
   state.bajoBy = null
   state.votingOpen = false
@@ -163,7 +166,8 @@ function startNextRound(state: GameState) {
 }
 
 /** Handle end-of-round bookkeeping: increment roundWins (if a winner), check match finish,
- *  and either finalize overall winner or prepare the next round.
+ *  and prepare results. DOES NOT auto-advance to the next round — the host must dispatch an
+ *  explicit "advance_round" action to start the next round so the UI can show results first.
  */
 function finishRoundAndMaybeAdvance(state: GameState, feed: string[]) {
   // Determine winner from state.results (if any)
@@ -173,14 +177,17 @@ function finishRoundAndMaybeAdvance(state: GameState, feed: string[]) {
   if (winnerId) {
     state.roundWins[winnerId] = (state.roundWins[winnerId] ?? 0) + 1
     feed.push(`${winnerResult!.name} ganó la ronda ${state.matchRoundNumber}.`)
+    // Preserve the per-round winner in state.winnerId so the UI and later actions know who won
+    state.winnerId = winnerId
   } else {
     feed.push(`Ronda ${state.matchRoundNumber} finalizada sin ganador.`)
+    state.winnerId = null
   }
 
   const requiredWins = Math.ceil(state.totalRounds / 2)
   const overallWinner = Object.entries(state.roundWins).find(([, w]) => w >= requiredWins)
   if (overallWinner) {
-    // Finish match
+    // Finish match — keep phase as "results" so UI can show final results
     state.overallWinnerId = overallWinner[0]
     state.phase = "results"
     const winnerPlayer = state.players.find((p) => p.id === state.overallWinnerId)
@@ -189,11 +196,8 @@ function finishRoundAndMaybeAdvance(state: GameState, feed: string[]) {
     return
   }
 
-  // Otherwise advance to next round
-  state.matchRoundNumber += 1
-  startNextRound(state)
-  state.phase = "duel"
-  feed.push(`Comienza la ronda ${state.matchRoundNumber}.`)
+  // Do not auto-start the next round here. Leave state.phase as "results" so the UI shows scores.
+  // The host should call the new "advance_round" action to begin the next round when ready.
 }
 
 function resolveBajo(state: GameState, feed: string[]) {
@@ -359,6 +363,18 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       state.results = finalResults
       state.phase = "results"
       finishRoundAndMaybeAdvance(state, feed)
+      break
+    }
+    case "advance_round": {
+      // Host action to actually begin the next round after results have been shown.
+      if (state.phase !== "results") break
+      if (state.overallWinnerId) break
+      // Use the last round's winner as the starting player when available
+      const startingId = state.winnerId ?? null
+      state.matchRoundNumber += 1
+      startNextRound(state, startingId)
+      state.phase = "duel"
+      feed.push(`Comienza la ronda ${state.matchRoundNumber}.`)
       break
     }
   }

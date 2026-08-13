@@ -14,7 +14,7 @@ export function ResultsModal({
 }: {
   state: GameState
   isHost: boolean
-  onPlayAgain: (currentState: GameState) => void
+  onPlayAgain: (currentState: GameState, forceLobby?: boolean) => void
 }) {
   const results = state.results ?? []
   const winner = results.find((r) => r.playerId === state.winnerId)
@@ -34,7 +34,7 @@ export function ResultsModal({
           <Trophy className="size-6" />
         </span>
         <h2 id="results-title" className="mt-2 text-xl font-bold">
-          {isMatchOver ? "¡Partida Terminada!" : "Resultados de la Ronda"}
+          {isMatchOver ? "¡Partida Terminada!" : `Resultados · Ronda ${state.roundNumber}`}
         </h2>
 
         {/* Match progress */}
@@ -165,15 +165,30 @@ export function ResultsModal({
         </div>
       </div>
 
-      <div className="mt-5 pt-4 border-t border-border">
+      <div className="mt-5 pt-4 border-t border-border flex flex-col gap-2">
         {isHost ? (
-          <button
-            onClick={() => onPlayAgain(state)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:translate-y-px"
-          >
-            <RotateCcw className="size-4" />
-            {isMatchOver ? "Volver al lobby" : "Siguiente ronda"}
-          </button>
+          <>
+            {!isMatchOver && (
+              <button
+                onClick={() => onPlayAgain(state, false)}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:translate-y-px"
+              >
+                <RotateCcw className="size-4" />
+                Nueva Ronda
+              </button>
+            )}
+            <button
+              onClick={() => onPlayAgain(state, true)}
+              className={cn(
+                "inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition active:translate-y-px",
+                isMatchOver
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "border border-border bg-input/30 text-muted-foreground hover:bg-input/60"
+              )}
+            >
+              Volver al Lobby
+            </button>
+          </>
         ) : (
           <p className="text-center text-sm text-muted-foreground">
             {isMatchOver

@@ -1,7 +1,7 @@
-import { dealGame, type LobbyMember } from "./deck"
+import { dealGame, dealNewRound, type LobbyMember } from "./deck"
 import { addStats, emptyStats, scoreAll, overcomesChallenge } from "./scoring"
 import { duelScore, statsTotal } from "./scoring"
-import type { GameState, PlayerState, Stats } from "./types"
+import type { GameState, PlayerState, Stats, AttributeCard } from "./types"
 import { DEFAULT_TOTAL_ROUNDS } from "./constants"
 
 export type GameAction =
@@ -10,7 +10,8 @@ export type GameAction =
   | { type: "draw"; playerId: string; attributeId: string }
   | { type: "bajo"; playerId: string }
   | { type: "steal"; playerId: string; targetPlayerId: string }
-  | { type: "advance_round"; playerId: string }
+  | { type: "start_new_round"; playerId: string }
+  | { type: "keep_stolen"; playerId: string; keep: boolean }
 
 export interface ReduceResult {
   state: GameState
@@ -34,11 +35,11 @@ export function startGame(code: string, members: LobbyMember[]): GameState {
     globalChallengeCards: [],
     duelWinnerId: null,
     bajoBy: null,
-    votingOpen: false,
-    votes: {},
     results: null,
     winnerId: null,
     bajoSuccess: null,
+    roundNumber: 1,
+    stolenCard: null,
 
     // Match-level fields
     totalRounds: DEFAULT_TOTAL_ROUNDS,
@@ -120,61 +121,8 @@ function computeWinnerFromResults(state: GameState, results: { playerId: string;
   return eligible[0] ?? null
 }
 
-/** Start next round: re-deal attributes & challenges while preserving avatars.
- *  Preserves: avatars (kept from previous players), roundWins, totalRounds, matchRoundNumber.
- *  Resets per-round fields: tableAttributes, tableChallenges, hand, duelChoice, globalChoice, customChallengeName, drewThisRound, etc.
- *  Accepts an optional startingPlayerId to set who begins the next round (previous round winner).
- */
-function startNextRound(state: GameState, startingPlayerId?: string | null) {
-  // Build roster from existing players (id/name/isHost)
-  const roster: LobbyMember[] = state.players.map((p) => ({ id: p.id, name: p.name, isHost: p.isHost }))
-  const newPlayers = dealGame(roster)
-
-  // Preserve previous avatars
-  const avatarById = state.players.reduce<Record<string, typeof state.players[0]["avatar"]>>((acc, p) => {
-    acc[p.id] = p.avatar
-    return acc
-  }, {})
-
-  // Replace newPlayers' avatars with preserved ones, and clear per-round fields
-  state.players = newPlayers.map((np) => {
-    const preservedAvatar = avatarById[np.id]
-    return {
-      ...np,
-      avatar: preservedAvatar ?? np.avatar,
-      hand: [],
-      duelChoice: null,
-      globalChoice: null,
-      customChallengeName: null,
-      drewThisRound: false,
-    }
-  })
-
-  // ASEGURAR que duelChoice está limpio en todos los jugadores
-  state.players.forEach((p) => {
-    p.duelChoice = null
-    p.globalChoice = null
-    p.hand = []
-  })
-
-  // Reset match-level round fields that belong to per-round lifecycle
-  // Set activePlayerId to the provided starting player (previous round winner) if any, otherwise null
-  state.activePlayerId = startingPlayerId ?? null
-  state.duelWinnerId = null
-  state.bajoBy = null
-  state.votingOpen = false
-  state.votes = {}
-  state.results = null
-  state.winnerId = null
-  state.bajoSuccess = null
-  state.globalChallenge = null
-  state.globalChallengeCards = []
-  state.round = 0
-}
-
 /** Handle end-of-round bookkeeping: increment roundWins (if a winner), check match finish,
- *  and prepare results. DOES NOT auto-advance to the next round — the host must dispatch an
- *  explicit "advance_round" action to start the next round so the UI can show results first.
+ *  and prepare results.
  */
 function finishRoundAndMaybeAdvance(state: GameState, feed: string[]) {
   // Determine winner from state.results (if any)
@@ -202,9 +150,6 @@ function finishRoundAndMaybeAdvance(state: GameState, feed: string[]) {
     feed.push(`${winnerPlayer ? winnerPlayer.name : state.overallWinnerId} ganó la partida (${wins} de ${state.totalRounds} rondas).`)
     return
   }
-
-  // Do not auto-start the next round here. Leave state.phase as "results" so the UI shows scores.
-  // The host should call the new "advance_round" action to begin the next round when ready.
 }
 
 function resolveBajo(state: GameState, feed: string[]) {
@@ -231,7 +176,6 @@ function resolveBajo(state: GameState, feed: string[]) {
     caller === winner.playerId &&
     callerOvercomes
   )
-  state.votingOpen = false
 
   if (winner) {
     feed.push(`Resultados calculados. Ganador provisional: ${winner.name} (${winner.total} pts).`)
@@ -336,7 +280,6 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       const stealableCards = target.hand.filter((a) => a.id !== target.duelChoice)
       if (stealableCards.length === 0) {
         // Nothing to steal; finalize round
-        // Recalculate scores and finalize
         const finalResultsNoSteal = scoreAll(state.players, state.globalChallenge ?? emptyStats())
         state.results = finalResultsNoSteal
         state.phase = "results"
@@ -357,6 +300,9 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
         feed.push(`¡El ganador ${winnerPlayer.name} robó al azar la carta "${chosenCard.nombre}" de la mano de ${target.name}!`)
       }
 
+      // Almacenar la carta robada para la siguiente ronda
+      state.stolenCard = chosenCard
+
       // Recalculate scores and winner, then finalize round
       const finalResults = scoreAll(state.players, state.globalChallenge ?? emptyStats())
       state.results = finalResults
@@ -364,20 +310,58 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       finishRoundAndMaybeAdvance(state, feed)
       break
     }
-    case "advance_round": {
-      // Host action to actually begin the next round after results have been shown.
+    case "start_new_round": {
       if (state.phase !== "results") break
       if (state.overallWinnerId) break
-      // Use the last round's winner as the starting player when available
-      const startingId = state.winnerId ?? null
-      state.matchRoundNumber += 1
-      startNextRound(state, startingId)
 
-      // Rondas 2+ comienzan con global challenge (sin duelo), el ganador anterior es el activePlayerId
-      state.phase = "global_challenge"
+      const startingId = state.winnerId ?? null
+      state.roundNumber += 1
+      state.matchRoundNumber += 1
+
+      // Reset round-level fields, but keep winnerId for new_round_setup and dealNewRound
       state.activePlayerId = startingId
+      state.duelWinnerId = null
+      state.bajoBy = null
+      state.results = null
+      state.bajoSuccess = null
+      state.globalChallenge = null
+      state.globalChallengeCards = []
+      state.round = 0
+
+      if (state.stolenCard) {
+        state.phase = "new_round_setup"
+        state.activePlayerId = startingId // previous winner must act
+        feed.push(`Comienza la ronda ${state.roundNumber}. ${state.players.find(p => p.id === startingId)?.name ?? "El ganador anterior"} debe decidir si conserva la carta robada.`)
+      } else {
+        state.players = dealNewRound(state.players, startingId, false, null)
+        state.winnerId = null // clear winnerId now that cards are dealt
+        state.phase = "global_challenge"
+        const startingPlayer = state.players.find((p) => p.id === startingId)?.name ?? "Jugador desconocido"
+        feed.push(`Comienza la ronda ${state.roundNumber}. ${startingPlayer} comienza eligiendo el Desafío Global.`)
+      }
+      break
+    }
+    case "keep_stolen": {
+      if (state.phase !== "new_round_setup") break
+      if (action.playerId !== state.winnerId) break
+
+      const keep = action.keep
+      const stolen = state.stolenCard
+      const startingId = state.winnerId
+
+      state.players = dealNewRound(state.players, startingId, keep, stolen)
+      state.stolenCard = null
+      state.winnerId = null // clear winnerId now that cards are dealt
+
+      state.phase = "global_challenge"
+      state.activePlayerId = startingId ?? null
+
       const startingPlayer = state.players.find((p) => p.id === startingId)?.name ?? "Jugador desconocido"
-      feed.push(`Comienza la ronda ${state.matchRoundNumber}. ${startingPlayer} comienza eligiendo el Desafío Global.`)
+      if (keep && stolen) {
+        feed.push(`${startingPlayer} decidió conservar la carta "${stolen.nombre}". Comienza eligiendo el Desafío Global.`)
+      } else {
+        feed.push(`${startingPlayer} decidió descartar la carta robada. Comienza eligiendo el Desafío Global.`)
+      }
       break
     }
   }

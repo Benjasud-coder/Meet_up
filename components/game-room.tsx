@@ -7,6 +7,7 @@ import { Lobby } from "./lobby"
 import { GameBoard } from "./game/game-board"
 import { SelectionModal } from "./game/selection-modal"
 import { StealModal } from "./game/steal-modal"
+import { KeepStolenModal } from "./game/keep-stolen-modal"
 import { ResultsModal } from "./game/results-modal"
 import { EventFeed } from "./game/event-feed"
 
@@ -120,8 +121,22 @@ export function GameRoom({
         />
       )}
 
+      {gameState.phase === "new_round_setup" && (
+        <KeepStolenModal
+          state={gameState}
+          me={me}
+          onKeepChoice={(keep) =>
+            room.dispatch({ type: "keep_stolen", playerId, keep })
+          }
+        />
+      )}
+
       {gameState.phase === "results" && (
-        <ResultsModal state={gameState} isHost={self.isHost} onPlayAgain={(currentState) => room.playAgain(currentState)} />
+        <ResultsModal
+          state={gameState}
+          isHost={self.isHost}
+          onPlayAgain={(currentState, forceLobby) => room.playAgain(currentState, forceLobby)}
+        />
       )}
 
       <EventFeed feed={room.feed} />

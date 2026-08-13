@@ -134,3 +134,38 @@ export function dealGame(members: LobbyMember[]): PlayerState[] {
     }
   })
 }
+
+export function dealNewRound(
+  players: PlayerState[],
+  winnerId: string | null,
+  keepStolen: boolean,
+  stolenCard: AttributeCard | null
+): PlayerState[] {
+  const attributes = shuffle(ATTRIBUTES)
+  const challenges = shuffle(CHALLENGES)
+  
+  let attrIdx = 0
+  let chIdx = 0
+
+  return players.map((p) => {
+    const isWinner = p.id === winnerId
+    const shouldKeep = isWinner && keepStolen && !!stolenCard
+    // Si el ganador conserva la robada, recibe 3 cartas a la mesa. Si no, 4.
+    const numTableCards = shouldKeep ? 3 : 4
+    const tableAttributes = attributes.slice(attrIdx, attrIdx + numTableCards)
+    attrIdx += numTableCards
+    
+    const tableChallenges = challenges.slice(chIdx, chIdx + CHALLENGES_DEALT)
+    chIdx += CHALLENGES_DEALT
+    return {
+      ...p,
+      tableAttributes,
+      tableChallenges,
+      hand: shouldKeep && stolenCard ? [stolenCard] : [], // Conserva en mano si eligió Sí
+      duelChoice: null,
+      globalChoice: null,
+      customChallengeName: null,
+      drewThisRound: false,
+    }
+  })
+}

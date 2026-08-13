@@ -30,8 +30,8 @@ export type GamePhase =
   | "duel"
   | "global_challenge"
   | "playing"
-  | "voting"
   | "steal"
+  | "new_round_setup"
   | "results"
 
 /** Full state for a single player. Held authoritatively by the host and broadcast to all. */
@@ -76,12 +76,11 @@ export interface GameState {
   duelWinnerId: string | null
   /** id of the player who called BAJO. */
   bajoBy: string | null
-  /** Whether the active BAJO involves a creative challenge that needs a vote. */
-  votingOpen: boolean
-  votes: Record<string, "accept" | "reject">
   results: ScoreBreakdown[] | null
   winnerId: string | null
   bajoSuccess: boolean | null
+  roundNumber: number
+  stolenCard: AttributeCard | null
 
   /** Match-level fields for best-of-N rounds */
   totalRounds: number

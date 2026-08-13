@@ -203,12 +203,12 @@ export function useGameRoom({ code, playerId, name, isHost }: UseGameRoomArgs) {
     broadcast("feed", { message: msg })
   }, [isHost, code, broadcast, pushFeed])
 
-  const playAgain = useCallback((currentGameState: GameState | null) => {
+  const playAgain = useCallback((currentGameState: GameState | null, forceLobby = false) => {
     if (!isHost) return
     if (!currentGameState) return
 
-    // If there's an overall winner, end the match and go back to lobby
-    if (currentGameState.overallWinnerId) {
+    // If there's an overall winner, or we explicitly return to lobby
+    if (currentGameState.overallWinnerId || forceLobby) {
       gameStateRef.current = null
       setGameState(null)
       broadcast("game_state", { state: null })
@@ -226,8 +226,8 @@ export function useGameRoom({ code, playerId, name, isHost }: UseGameRoomArgs) {
       pushFeed(msg)
       broadcast("feed", { message: msg })
     } else {
-      // Otherwise, advance to the next round
-      processAction({ type: "advance_round", playerId })
+      // Otherwise, start the new round
+      processAction({ type: "start_new_round", playerId })
     }
   }, [isHost, playerId, processAction, broadcast, pushFeed, name])
 

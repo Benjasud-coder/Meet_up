@@ -188,6 +188,10 @@ export function GameBoard({
           </div>
           <div className="border-l border-border pl-3">
             <p className="text-[0.6rem] uppercase tracking-wider text-muted-foreground">Ronda</p>
+            <p className="text-sm font-bold tabular-nums">{state.roundNumber}</p>
+          </div>
+          <div className="border-l border-border pl-3">
+            <p className="text-[0.6rem] uppercase tracking-wider text-muted-foreground">Vuelta</p>
             <p className="text-sm font-bold tabular-nums">{state.round}</p>
           </div>
           <div className="border-l border-border pl-3">

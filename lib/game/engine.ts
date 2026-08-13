@@ -309,12 +309,6 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
           break
         }
       }
-      // Round complete when everyone has drawn.
-      if (state.players.every((pl) => pl.drewThisRound)) {
-        state.players.forEach((pl) => (pl.drewThisRound = false))
-        state.round += 1
-        feed.push(`Ronda completa. El botón ¡BAJO! está disponible.`)
-      }
       if (everyTableEmpty(state)) {
         feed.push("Se agotaron los Atributos en mesa. Resolviendo la partida...")
         state.bajoBy = state.activePlayerId
@@ -324,8 +318,6 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
     }
     case "bajo": {
       if (state.phase !== "playing") break
-      // BAJO only allowed once at least one full round has completed.
-      if (state.round < 2) break
       const p = player(state, action.playerId)
       if (!p) break
       state.bajoBy = action.playerId

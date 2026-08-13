@@ -168,7 +168,7 @@ export function GameBoard({
   const opponents = state.players.filter((p) => p.id !== me.id)
   const myTurn = state.activePlayerId === me.id && state.phase === "playing"
   const activePlayer = state.players.find((p) => p.id === state.activePlayerId)
-  const bajoAvailable = state.phase === "playing" && state.round >= 2
+  const bajoAvailable = state.phase === "playing"
   const canDraw = myTurn && !me.drewThisRound && me.tableAttributes.length > 0
 
   return (

@@ -28,7 +28,7 @@ export function ResultsModal({
   const matchWinner = isMatchOver ? state.players.find((p) => p.id === state.overallWinnerId) : null
 
   return (
-    <Modal labelledBy="results-title" className="max-w-xl">
+    <Modal labelledBy="results-title" className="max-w-xl flex flex-col max-h-[90vh]">
       <div className="mb-4 text-center">
         <span className="inline-flex size-12 items-center justify-center rounded-full bg-primary/15 text-primary">
           <Trophy className="size-6" />
@@ -99,71 +99,73 @@ export function ResultsModal({
         )}
       </div>
 
-      <div className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto">
-        {results.map((r, i) => {
-          const playerObj = state.players.find((p) => p.id === r.playerId)
-          const isWinner = state.winnerId === r.playerId
-          const overcame = playerObj ? overcomesChallenge(playerObj, state.globalChallenge) : false
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex flex-col gap-2">
+          {results.map((r, i) => {
+            const playerObj = state.players.find((p) => p.id === r.playerId)
+            const isWinner = state.winnerId === r.playerId
+            const overcame = playerObj ? overcomesChallenge(playerObj, state.globalChallenge) : false
 
-          return (
-            <div
-              key={r.playerId}
-              className={cn(
-                "rounded-xl border p-3",
-                isWinner ? "border-primary/60 bg-primary/5" : "border-border bg-input/30",
-                !overcame && "opacity-75"
-              )}
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <span className="flex items-center gap-2 font-semibold">
-                  <span className="text-muted-foreground tabular-nums">{i + 1}.</span>
-                  {r.name}
-                  {isWinner && <Crown className="size-4 text-primary" />}
-                  {overcame ? (
-                    <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
-                      Superado
-                    </span>
-                  ) : (
-                    <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-destructive">
-                      Falló Desafío
-                    </span>
-                  )}
-                </span>
-                <span className="text-lg font-bold tabular-nums">{r.total}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                {DIMENSIONS.map((d) => {
-                  const v = r.perDimension[d]
-                  const meta = DIMENSION_META[d]
-                  return (
-                    <div key={d} className="flex items-center gap-2 text-xs">
-                      <span className="w-8 shrink-0 font-medium" style={{ color: meta.color }}>
-                        {meta.short}
+            return (
+              <div
+                key={r.playerId}
+                className={cn(
+                  "rounded-xl border p-3",
+                  isWinner ? "border-primary/60 bg-primary/5" : "border-border bg-input/30",
+                  !overcame && "opacity-75"
+                )}
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-2 font-semibold">
+                    <span className="text-muted-foreground tabular-nums">{i + 1}.</span>
+                    {r.name}
+                    {isWinner && <Crown className="size-4 text-primary" />}
+                    {overcame ? (
+                      <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
+                        Superado
                       </span>
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${(Math.abs(v) / maxAbs) * 100}%`,
-                            backgroundColor: meta.color,
-                            marginLeft: v < 0 ? "auto" : undefined,
-                            opacity: v < 0 ? 0.5 : 1,
-                          }}
-                        />
+                    ) : (
+                      <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-destructive">
+                        Falló Desafío
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-lg font-bold tabular-nums">{r.total}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {DIMENSIONS.map((d) => {
+                    const v = r.perDimension[d]
+                    const meta = DIMENSION_META[d]
+                    return (
+                      <div key={d} className="flex items-center gap-2 text-xs">
+                        <span className="w-8 shrink-0 font-medium" style={{ color: meta.color }}>
+                          {meta.short}
+                        </span>
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${(Math.abs(v) / maxAbs) * 100}%`,
+                              backgroundColor: meta.color,
+                              marginLeft: v < 0 ? "auto" : undefined,
+                              opacity: v < 0 ? 0.5 : 1,
+                            }}
+                          />
+                        </div>
+                        <span className="w-8 shrink-0 text-right font-semibold tabular-nums" style={{ color: meta.color }}>
+                          {v}
+                        </span>
                       </div>
-                      <span className="w-8 shrink-0 text-right font-semibold tabular-nums" style={{ color: meta.color }}>
-                        {v}
-                      </span>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
-      <div className="mt-5">
+      <div className="mt-5 pt-4 border-t border-border">
         {isHost ? (
           <button
             onClick={() => onPlayAgain(state)}

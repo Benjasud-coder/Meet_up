@@ -97,6 +97,7 @@ export function dealGame(members: LobbyMember[]): PlayerState[] {
       hand: [],
       duelChoice: null,
       globalChoice: null,
+      customChallengeName: null,
       drewThisRound: false,
     }
   })

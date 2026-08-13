@@ -203,13 +203,12 @@ export function useGameRoom({ code, playerId, name, isHost }: UseGameRoomArgs) {
     broadcast("feed", { message: msg })
   }, [isHost, code, broadcast, pushFeed])
 
-  const playAgain = useCallback(() => {
+  const playAgain = useCallback((currentGameState: GameState | null) => {
     if (!isHost) return
-    const cur = gameStateRef.current
-    if (!cur) return
+    if (!currentGameState) return
 
     // If there's an overall winner, end the match and go back to lobby
-    if (cur.overallWinnerId) {
+    if (currentGameState.overallWinnerId) {
       gameStateRef.current = null
       setGameState(null)
       broadcast("game_state", { state: null })

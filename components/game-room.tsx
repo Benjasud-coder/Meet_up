@@ -121,7 +121,7 @@ export function GameRoom({
       )}
 
       {gameState.phase === "results" && (
-        <ResultsModal state={gameState} isHost={self.isHost} onPlayAgain={room.playAgain} />
+        <ResultsModal state={gameState} isHost={self.isHost} onPlayAgain={(currentState) => room.playAgain(currentState)} />
       )}
 
       <EventFeed feed={room.feed} />

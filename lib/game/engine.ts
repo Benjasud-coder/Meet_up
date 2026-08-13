@@ -373,8 +373,12 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       const startingId = state.winnerId ?? null
       state.matchRoundNumber += 1
       startNextRound(state, startingId)
-      state.phase = "duel"
-      feed.push(`Comienza la ronda ${state.matchRoundNumber}.`)
+      
+      // Rondas 2+ comienzan con global challenge (sin duelo), el ganador anterior es el activePlayerId
+      state.phase = "global_challenge"
+      state.activePlayerId = startingId
+      const startingPlayer = state.players.find((p) => p.id === startingId)?.name ?? "Jugador desconocido"
+      feed.push(`Comienza la ronda ${state.matchRoundNumber}. ${startingPlayer} comienza eligiendo el Desafío Global.`)
       break
     }
   }

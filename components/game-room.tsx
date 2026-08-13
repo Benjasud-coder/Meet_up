@@ -6,7 +6,7 @@ import type { RoomEntry } from "./home-screen"
 import { Lobby } from "./lobby"
 import { GameBoard } from "./game/game-board"
 import { SelectionModal } from "./game/selection-modal"
-import { VoteModal } from "./game/vote-modal"
+import { StealModal } from "./game/steal-modal"
 import { ResultsModal } from "./game/results-modal"
 import { EventFeed } from "./game/event-feed"
 
@@ -110,11 +110,13 @@ export function GameRoom({
         />
       )}
 
-      {gameState.phase === "voting" && (
-        <VoteModal
+      {gameState.phase === "steal" && (
+        <StealModal
           state={gameState}
           me={me}
-          onVote={(vote) => room.dispatch({ type: "vote", playerId, vote })}
+          onSteal={(targetPlayerId) =>
+            room.dispatch({ type: "steal", playerId, targetPlayerId })
+          }
         />
       )}
 

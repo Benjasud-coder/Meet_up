@@ -26,7 +26,8 @@ export function statsTotal(stats: Stats): number {
  * Puntaje_Final = suma de las 4 dimensiones.
  */
 export function scorePlayer(player: PlayerState, globalChallenge: Stats): ScoreBreakdown {
-  const handSum = sumAttributes(player.hand)
+  const filteredHand = player.hand.filter((a) => a.id !== player.duelChoice)
+  const handSum = sumAttributes(filteredHand)
   const perDimension = emptyStats()
   for (const d of DIMENSIONS) {
     // globalChallenge values are negative, so subtracting adds the penalty magnitude.
@@ -57,7 +58,8 @@ export function duelScore(a: Stats, b: Stats): { aWins: number; bWins: number } 
 
 /** Returns the total stats (Avatar + Hand attributes) for a player per dimension. */
 export function playerTotalStats(player: PlayerState): Stats {
-  const handSum = sumAttributes(player.hand)
+  const filteredHand = player.hand.filter((a) => a.id !== player.duelChoice)
+  const handSum = sumAttributes(filteredHand)
   return {
     espiritual: player.avatar.stats.espiritual + handSum.espiritual,
     intelectual: player.avatar.stats.intelectual + handSum.intelectual,

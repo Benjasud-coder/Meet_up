@@ -37,3 +37,4 @@ export const DIMENSION_META: Record<
 /** Number of attribute cards each player draws before a round is complete. */
 export const ATTRIBUTES_DEALT = 4
 export const CHALLENGES_DEALT = 2
+export const DEFAULT_TOTAL_ROUNDS = 3

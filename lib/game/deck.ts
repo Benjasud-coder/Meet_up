@@ -143,25 +143,31 @@ export function dealNewRound(
 ): PlayerState[] {
   const attributes = shuffle(ATTRIBUTES)
   const challenges = shuffle(CHALLENGES)
-  
+
   let attrIdx = 0
   let chIdx = 0
 
   return players.map((p) => {
     const isWinner = p.id === winnerId
     const shouldKeep = isWinner && keepStolen && !!stolenCard
-    // Si el ganador conserva la robada, recibe 3 cartas a la mesa. Si no, 4.
-    const numTableCards = shouldKeep ? 3 : 4
-    const tableAttributes = attributes.slice(attrIdx, attrIdx + numTableCards)
-    attrIdx += numTableCards
-    
+
+    // Todos reciben sus cartas de mesa estándar
+    const tableAttributes = attributes.slice(attrIdx, attrIdx + ATTRIBUTES_DEALT)
+    attrIdx += ATTRIBUTES_DEALT
+
+    // Si el ganador conserva la carta robada, se agrega A LA MESA (tendrá 4 cartas)
+    if (shouldKeep && stolenCard) {
+      tableAttributes.push(stolenCard)
+    }
+
     const tableChallenges = challenges.slice(chIdx, chIdx + CHALLENGES_DEALT)
     chIdx += CHALLENGES_DEALT
+
     return {
       ...p,
       tableAttributes,
       tableChallenges,
-      hand: shouldKeep && stolenCard ? [stolenCard] : [], // Conserva en mano si eligió Sí
+      hand: [], // 👈 SIEMPRE empieza vacía la mano
       duelChoice: null,
       globalChoice: null,
       customChallengeName: null,

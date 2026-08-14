@@ -28,7 +28,7 @@ export function Lobby({
 
   const readyCount = members.filter((m) => m.ready).length
   const canStart =
-    self.isHost && members.length >= 2 && members.length <= 4 && readyCount === members.length
+    self.isHost && members.length >= 2 && members.length <= 2 && readyCount === members.length
 
   function copyCode() {
     navigator.clipboard?.writeText(code).then(() => {
@@ -73,7 +73,7 @@ export function Lobby({
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">
             Jugadores conectados
-            <span className="ml-2 text-muted-foreground">{members.length}/4</span>
+            <span className="ml-2 text-muted-foreground">{members.length}/2</span>
           </h2>
           <span className="text-xs text-muted-foreground">{readyCount} listos</span>
         </div>
@@ -149,7 +149,7 @@ export function Lobby({
         )}
         {self.isHost && !canStart && (
           <p className="text-center text-xs text-muted-foreground">
-            Se necesitan de 2 a 4 jugadores, todos marcados como listos.
+            Se necesitan de 2 jugadores, todos marcados como listos.
           </p>
         )}
         {!self.isHost && (

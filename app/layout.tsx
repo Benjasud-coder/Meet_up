@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono'
 export const metadata: Metadata = {
   title: 'Duelo de Dimensiones — Cartas Multijugador',
   description:
-    'Juego de cartas multijugador en tiempo real de 2 a 4 jugadores. Crea una sala, invita a tus amigos y compite en las dimensiones Espiritual, Intelectual, Física y Social.',
+    'Juego de cartas multijugador en tiempo real de 2 jugadores. Crea una sala, invita a tus amigos y compite en las dimensiones Espiritual, Intelectual, Física y Social.',
   generator: 'v0.app',
 }
 

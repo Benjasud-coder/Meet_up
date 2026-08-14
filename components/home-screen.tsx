@@ -58,7 +58,7 @@ export function HomeScreen({ onEnter }: { onEnter: (entry: RoomEntry) => void })
           </div>
           <h1 className="text-balance text-4xl font-bold tracking-tight">Duelo de Dimensiones</h1>
           <p className="mt-2 text-pretty text-sm text-muted-foreground">
-            De 2 a 4 jugadores desde sus propios dispositivos. Compite en las dimensiones Espiritual,
+            De 2 jugadores desde sus propios dispositivos. Compite en las dimensiones Espiritual,
             Intelectual, Física y Social.
           </p>
         </div>

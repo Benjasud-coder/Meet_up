@@ -250,6 +250,7 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
         const next = state.players[(curIdx + step) % order.length]
         if (next) {
           state.activePlayerId = next.id
+          next.drewThisRound = false // PERMITE QUE VUELVA A ROBAR EN SU NUEVO TURNO
           break
         }
       }

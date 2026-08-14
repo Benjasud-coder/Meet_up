@@ -314,48 +314,78 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       break
     }
     case "start_new_round": {
-      if (state.phase !== "results") break
-      if (state.overallWinnerId) break // Si ya hay un ganador del match, no hace nada
+      if (state.phase !== "results") break;
+      if (state.overallWinnerId) break;
 
-      // 1. Verificar si hay un ganador y si hay perdedores con cartas para robar
+      // 1. Verificar si hay un ganador y perdedores con cartas para robar
       if (state.winnerId) {
-        const winnerId = state.winnerId
+        const winnerId = state.winnerId;
         const targetsWithCards = state.players.filter(
           (p) => p.id !== winnerId && p.hand.filter((a) => a.id !== p.duelChoice).length > 0
-        )
+        );
 
-        // Si se cumple la condición de robo y aún no se ha robado en esta ronda
+        // Si hay cartas para robar y no se ha robado aún
         if (targetsWithCards.length > 0 && !state.stolenCard) {
-          state.phase = "steal"
-          const winnerName = state.players.find((p) => p.id === winnerId)?.name ?? "El ganador"
-          feed.push(`¡Fase de robo activada! ${winnerName} debe elegir a un jugador para robarle una carta.`)
-          break // Detenemos aquí para que la UI muestre la pantalla de robo
+          state.phase = "steal";
+          const winnerName = state.players.find((p) => p.id === winnerId)?.name ?? "El ganador";
+          feed.push(`¡Fase de robo activada! ${winnerName} debe elegir a un jugador para robarle una carta.`);
+          break; // Salimos del case para mostrar la pantalla/modal de robo
         }
       }
 
-      // 2. Si no hay robo posible (o ya se ejecutó), procedemos normalmente a la nueva ronda
-      const startingId = state.winnerId ?? null
-      state.roundNumber += 1
-      state.matchRoundNumber += 1
+      // 2. Si no hay robo posible o ya terminó, preparamos la nueva ronda
+      const startingId = state.winnerId ?? null;
+      state.roundNumber += 1;
+      state.matchRoundNumber += 1;
 
-      // Reset de campos de la ronda previa
-      state.activePlayerId = startingId
-      state.duelWinnerId = null
-      state.bajoBy = null
-      state.results = null
-      state.bajoSuccess = null
-      state.globalChallenge = null
-      state.globalChallengeCards = []
-      state.round = 0
+      // Limpieza de estado de la ronda anterior
+      state.activePlayerId = startingId;
+      state.duelWinnerId = null;
+      state.bajoBy = null;
+      state.results = null;
+      state.bajoSuccess = null;
+      state.globalChallenge = null;
+      state.globalChallengeCards = [];
+      state.round = 0;
 
       if (state.stolenCard) {
-        state.phase = "new_round_setup"
-        feed.push(`Comienza la ronda ${state.roundNumber}. ${state.players.find(p => p.id === startingId)?.name ?? "El ganador"} decide si conserva la carta robada.`)
+        state.phase = "new_round_setup";
+        const winnerName = state.players.find((p) => p.id === startingId)?.name ?? "El ganador";
+        feed.push(`Comienza la ronda ${state.roundNumber}. ${winnerName} decide si conserva la carta robada.`);
       } else {
-        state.players = dealNewRound(state.players, startingId, false, null)
-        state.winnerId = null
-        state.phase = "duel"
-        feed.push(`Comienza la ronda ${state.roundNumber}. Elijan su atributo para el Duelo.`)
+        state.players = dealNewRound(state.players, startingId, false, null);
+        state.winnerId = null;
+        state.phase = "duel";
+        feed.push(`Comienza la ronda ${state.roundNumber}. Elijan su atributo para el Duelo.`);
       }
-      break
+      break;
+    } // 👈 Llave de cierre de case "start_new_round"
+
+    // ----------------------------------------------------
+    // ACCIÓN: Decidir si conserva la carta robada
+    // ----------------------------------------------------
+    case "keep_stolen": {
+      if (state.phase !== "new_round_setup") break;
+      if (action.playerId !== state.winnerId) break;
+
+      const keep = action.keep;
+      const stolen = state.stolenCard;
+      const startingId = state.winnerId;
+
+      state.players = dealNewRound(state.players, startingId, keep, stolen);
+      state.stolenCard = null;
+      state.winnerId = null;
+
+      state.phase = "duel";
+      state.activePlayerId = startingId ?? null;
+
+      const startingPlayer = state.players.find((p) => p.id === startingId)?.name ?? "Jugador";
+      if (keep && stolen) {
+        feed.push(`${startingPlayer} decidió conservar la carta "${stolen.nombre}". ¡Comienza el Duelo de la nueva ronda!`);
+      } else {
+        feed.push(`${startingPlayer} decidió descartar la carta robada. ¡Comienza el Duelo de la nueva ronda!`);
+      }
+      break;
     }
+  }
+}

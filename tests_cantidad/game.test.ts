@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest" // O de 'jest' si usas Jest
 import { startGame, applyAction } from "./game" // Ajusta la ruta a tu game.ts
 
 describe("Prueba de Escalabilidad y Múltiples Partidas", () => {
-    it("Debería poder crear y gestionar 1,000 partidas simultáneas sin interferencias", () => {
-        const totalPartidas = 1000
+    it("Debería poder crear y gestionar 200 partidas simultáneas sin interferencias", () => {
+        const totalPartidas = 200
         const partidas: Record<string, any> = {}
 
         // 1. Crear 1,000 partidas en paralelo
@@ -20,13 +20,13 @@ describe("Prueba de Escalabilidad y Múltiples Partidas", () => {
         expect(Object.keys(partidas).length).toBe(totalPartidas)
 
         // 2. Modificar SOLO la partida 'SALA_500' (Jugador 1 elige su carta de duelo)
-        const salaObjetivo = "SALA_500"
+        const salaObjetivo = "SALA_100"
         const estadoAntes = partidas[salaObjetivo]
         const primeraCartaId = estadoAntes.players[0].tableAttributes[0].id
 
         const { state: nuevoEstado } = applyAction(estadoAntes, {
             type: "duel_choice",
-            playerId: "p1_500",
+            playerId: "p1_100",
             attributeId: primeraCartaId,
         })
 

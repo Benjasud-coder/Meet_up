@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest" // O de 'jest' si usas Jest
-import { startGame, applyAction } from "./lib/game" // Ajusta la ruta a tu game.ts
+import { startGame, applyAction } from "../lib/game" // Ajusta la ruta a tu game.ts
 
 describe("Prueba de Escalabilidad y Múltiples Partidas", () => {
     it("Debería poder crear y gestionar 200 partidas simultáneas sin interferencias", () => {

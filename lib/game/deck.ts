@@ -151,6 +151,8 @@ export function dealNewRound(
     const isWinner = p.id === winnerId
     const shouldKeep = isWinner && keepStolen && !!stolenCard
 
+    const countToDeal = shouldKeep ? 3 : ATTRIBUTES_DEALT //fix 5 cartas?
+
     // Todos reciben sus cartas de mesa estándar
     const tableAttributes = attributes.slice(attrIdx, attrIdx + ATTRIBUTES_DEALT)
     attrIdx += ATTRIBUTES_DEALT

@@ -26,16 +26,14 @@ export function statsTotal(stats: Stats): number {
  * Puntaje_Final = suma de las 4 dimensiones.
  */
 export function scorePlayer(player: PlayerState, globalChallenge: Stats): ScoreBreakdown {
-  // La mano EXCLUYE deliberatamente la carta usada en el duelo (duelChoice) solo si existe
-  const filteredHand = player.hand.filter((a) =>
-    !player.duelChoice || a.id !== player.duelChoice
-  )
-  const handSum = sumAttributes(filteredHand)
+  // Suma TODAS las cartas presentes en la mano del jugador
+  const handSum = sumAttributes(player.hand)
   const perDimension = emptyStats()
+
   for (const d of DIMENSIONS) {
-    // globalChallenge values are positive, so subtracting reduces the score.
     perDimension[d] = player.avatar.stats[d] + handSum[d] - globalChallenge[d]
   }
+
   return {
     playerId: player.id,
     name: player.name,
@@ -61,10 +59,7 @@ export function duelScore(a: Stats, b: Stats): { aWins: number; bWins: number } 
 
 /** Returns the total stats (Avatar + Hand attributes) for a player per dimension. */
 export function playerTotalStats(player: PlayerState): Stats {
-  const filteredHand = player.hand.filter((a) =>
-    !player.duelChoice || a.id !== player.duelChoice
-  )
-  const handSum = sumAttributes(filteredHand)
+  const handSum = sumAttributes(player.hand)
   return {
     espiritual: player.avatar.stats.espiritual + handSum.espiritual,
     intelectual: player.avatar.stats.intelectual + handSum.intelectual,
@@ -76,11 +71,8 @@ export function playerTotalStats(player: PlayerState): Stats {
 /** Checks if a player's total stats in every dimension exceed the challenge magnitude. */
 export function overcomesChallenge(player: PlayerState, globalChallenge: Stats | null): boolean {
   if (!globalChallenge) return true
-  // Compute effective per-dimension AFTER applying the global challenge penalty
-  const filteredHand = player.hand.filter((a) =>
-    !player.duelChoice || a.id !== player.duelChoice
-  )
-  const handSum = sumAttributes(filteredHand)
+
+  const handSum = sumAttributes(player.hand)
   for (const d of DIMENSIONS) {
     const effective = player.avatar.stats[d] + handSum[d] - globalChallenge[d]
     // Require strictly positive result to consider the challenge overcome

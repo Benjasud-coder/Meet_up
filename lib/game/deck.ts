@@ -154,8 +154,8 @@ export function dealNewRound(
     const countToDeal = shouldKeep ? 3 : ATTRIBUTES_DEALT //fix 5 cartas?
 
     // Todos reciben sus cartas de mesa estándar
-    const tableAttributes = attributes.slice(attrIdx, attrIdx + ATTRIBUTES_DEALT)
-    attrIdx += ATTRIBUTES_DEALT
+    const tableAttributes = attributes.slice(attrIdx, attrIdx + countToDeal)
+    attrIdx += countToDeal
 
     // Si el ganador conserva la carta robada, se agrega A LA MESA (tendrá 4 cartas)
     if (shouldKeep && stolenCard) {

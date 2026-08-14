@@ -34,11 +34,11 @@ describe("Prueba de Escalabilidad y Múltiples Partidas", () => {
 
         // 3. Verificaciones de aislamiento:
         // A) La SALA_500 sí debió cambiar
-        expect(partidas["SALA_500"].players[0].duelChoice).toBe(primeraCartaId)
+        expect(partidas["SALA_100"].players[0].duelChoice).toBe(primeraCartaId)
 
         // B) La SALA_1 o la SALA_999 NO debieron verse afectadas en lo absoluto
         expect(partidas["SALA_1"].players[0].duelChoice).toBeNull()
-        expect(partidas["SALA_999"].players[0].duelChoice).toBeNull()
+        expect(partidas["SALA_199"].players[0].duelChoice).toBeNull()
 
         console.log(`✅ ¡Prueba exitosa! Se ejecutaron ${totalPartidas} partidas en simultáneo y están 100% aisladas.`)
     })

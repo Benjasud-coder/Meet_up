@@ -176,7 +176,7 @@ function resolveBajo(state: GameState, feed: string[]) {
     caller === winner.playerId &&
     callerOvercomes
   )
-
+  state.phase = "results"
   if (winner) {
     feed.push(`Resultados calculados. Ganador provisional: ${winner.name} (${winner.total} pts).`)
 
@@ -313,13 +313,30 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
     }
     case "start_new_round": {
       if (state.phase !== "results") break
-      if (state.overallWinnerId) break
+      if (state.overallWinnerId) break // Si ya hay un ganador del match, no hace nada
 
+      // 1. Verificar si hay un ganador y si hay perdedores con cartas para robar
+      if (state.winnerId) {
+        const winnerId = state.winnerId
+        const targetsWithCards = state.players.filter(
+          (p) => p.id !== winnerId && p.hand.filter((a) => a.id !== p.duelChoice).length > 0
+        )
+
+        // Si se cumple la condición de robo y aún no se ha robado en esta ronda
+        if (targetsWithCards.length > 0 && !state.stolenCard) {
+          state.phase = "steal"
+          const winnerName = state.players.find((p) => p.id === winnerId)?.name ?? "El ganador"
+          feed.push(`¡Fase de robo activada! ${winnerName} debe elegir a un jugador para robarle una carta.`)
+          break // Detenemos aquí para que la UI muestre la pantalla de robo
+        }
+      }
+
+      // 2. Si no hay robo posible (o ya se ejecutó), procedemos normalmente a la nueva ronda
       const startingId = state.winnerId ?? null
       state.roundNumber += 1
       state.matchRoundNumber += 1
 
-      // Reset round-level fields, but keep winnerId for new_round_setup and dealNewRound
+      // Reset de campos de la ronda previa
       state.activePlayerId = startingId
       state.duelWinnerId = null
       state.bajoBy = null
@@ -331,14 +348,12 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
 
       if (state.stolenCard) {
         state.phase = "new_round_setup"
-        state.activePlayerId = startingId // previous winner must act
-        feed.push(`Comienza la ronda ${state.roundNumber}. ${state.players.find(p => p.id === startingId)?.name ?? "El ganador anterior"} debe decidir si conserva la carta robada.`)
+        feed.push(`Comienza la ronda ${state.roundNumber}. ${state.players.find(p => p.id === startingId)?.name ?? "El ganador"} decide si conserva la carta robada.`)
       } else {
         state.players = dealNewRound(state.players, startingId, false, null)
-        state.winnerId = null // clear winnerId now that cards are dealt
-        state.phase = "global_challenge"
-        const startingPlayer = state.players.find((p) => p.id === startingId)?.name ?? "Jugador desconocido"
-        feed.push(`Comienza la ronda ${state.roundNumber}. ${startingPlayer} comienza eligiendo el Desafío Global.`)
+        state.winnerId = null
+        state.phase = "duel"
+        feed.push(`Comienza la ronda ${state.roundNumber}. Elijan su atributo para el Duelo.`)
       }
       break
     }

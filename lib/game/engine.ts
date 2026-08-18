@@ -9,7 +9,7 @@ export type GameAction =
   | { type: "global_choice"; playerId: string; challengeId: string; customName?: string }
   | { type: "draw"; playerId: string; attributeId: string }
   | { type: "bajo"; playerId: string }
-  | { type: "steal"; playerId: string; targetPlayerId: string }
+  | { type: "steal"; playerId: string; targetPlayerId: string; targetAttributeId: string }
   | { type: "choose_challenge"; playerId: string; challengeId: string | null }
   | { type: "start_new_round"; playerId: string }
   | { type: "keep_stolen"; playerId: string; keep: boolean }
@@ -274,8 +274,9 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
         break
       }
 
-      const randomIdx = Math.floor(Math.random() * stealableCards.length)
-      const chosenCard = stealableCards[randomIdx]
+      // The winner picks a specific card by ID
+      const chosenCard = stealableCards.find((a) => a.id === action.targetAttributeId)
+      if (!chosenCard) break // invalid card id — ignore action
 
       // Remove chosenCard from target's hand
       target.hand = target.hand.filter((a) => a.id !== chosenCard.id)
@@ -284,7 +285,7 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       const winnerPlayer = player(state, state.winnerId)
       if (winnerPlayer) {
         winnerPlayer.hand.push(chosenCard)
-        feed.push(`¡El ganador ${winnerPlayer.name} robó al azar la carta "${chosenCard.nombre}" de la mano de ${target.name}!`)
+        feed.push(`¡El ganador ${winnerPlayer.name} robó la carta "${chosenCard.nombre}" de la mano de ${target.name}!`)
       }
 
       // Almacenar la carta robada para la siguiente ronda

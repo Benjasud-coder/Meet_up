@@ -116,8 +116,8 @@ export function GameRoom({
         <StealModal
           state={gameState}
           me={me}
-          onSteal={(targetPlayerId) =>
-            room.dispatch({ type: "steal", playerId, targetPlayerId })
+          onSteal={(targetPlayerId, targetAttributeId) =>
+            room.dispatch({ type: "steal", playerId, targetPlayerId, targetAttributeId })
           }
         />
       )}

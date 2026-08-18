@@ -1,7 +1,7 @@
 import { dealGame, dealNewRound, type LobbyMember } from "./deck"
 import { addStats, emptyStats, scoreAll, overcomesChallenge } from "./scoring"
 import { duelScore, statsTotal } from "./scoring"
-import type { GameState, PlayerState, Stats, AttributeCard } from "./types"
+import type { GameState, PlayerState, Stats, AttributeCard, ChallengeCard } from "./types"
 import { DEFAULT_TOTAL_ROUNDS } from "./constants"
 
 export type GameAction =
@@ -10,6 +10,7 @@ export type GameAction =
   | { type: "draw"; playerId: string; attributeId: string }
   | { type: "bajo"; playerId: string }
   | { type: "steal"; playerId: string; targetPlayerId: string }
+  | { type: "choose_challenge"; playerId: string; challengeId: string | null }
   | { type: "start_new_round"; playerId: string }
   | { type: "keep_stolen"; playerId: string; keep: boolean }
 
@@ -33,6 +34,8 @@ export function startGame(code: string, members: LobbyMember[]): GameState {
     round: 0,
     globalChallenge: null,
     globalChallengeCards: [],
+    usedChallenges: [],
+    keptChallenge: null,
     duelWinnerId: null,
     bajoBy: null,
     results: null,
@@ -89,6 +92,7 @@ function resolveDuel(state: GameState, feed: string[]) {
 function resolveGlobalChallenge(state: GameState, feed: string[]) {
   let combined: Stats = emptyStats()
   const cards: { name: string; tipo: "Específico" | "Creativo" }[] = []
+  const used: ChallengeCard[] = []
   for (const p of state.players) {
     const ch = p.tableChallenges.find((c) => c.id === p.globalChoice)
     if (ch) {
@@ -98,10 +102,12 @@ function resolveGlobalChallenge(state: GameState, feed: string[]) {
         ? p.customChallengeName
         : ch.nombre
       cards.push({ name: displayName, tipo: ch.tipo })
+      used.push({ ...ch, nombre: displayName })
     }
   }
   state.globalChallenge = combined
   state.globalChallengeCards = cards
+  state.usedChallenges = used
   state.phase = "playing"
   state.round = 1
   feed.push("¡El Desafío Global de la Partida ha sido revelado! Comienza el juego.")
@@ -179,30 +185,11 @@ function resolveBajo(state: GameState, feed: string[]) {
   state.phase = "results"
   if (winner) {
     feed.push(`Resultados calculados. Ganador provisional: ${winner.name} (${winner.total} pts).`)
-
-    // Check if there are losers who have cards in hand (excluding their duelChoice card)
-    const targetsWithCards = state.players.filter(
-      (p) => p.id !== winner.playerId && p.hand.filter((a) => a.id !== p.duelChoice).length > 0
-    )
-
-    if (targetsWithCards.length > 0) {
-      state.phase = "steal"
-      feed.push(`¡Fase de robo activada! ${winner.name} elegirá un atributo al azar de un perdedor.`)
-      // Do not finish the round yet — wait for the steal action to complete or be skipped.
-      return
-    } else {
-      // No steal possible -> finalize round immediately
-      state.phase = "results"
-      finishRoundAndMaybeAdvance(state, feed)
-      return
-    }
   } else {
-    state.phase = "results"
     feed.push("Resultados calculados. ¡Nadie logró superar el Desafío Global en todas las áreas!")
-    // Finalize round (no winner)
-    finishRoundAndMaybeAdvance(state, feed)
-    return
   }
+  // Finalize round immediately and show results
+  finishRoundAndMaybeAdvance(state, feed)
 }
 
 export function applyAction(prev: GameState, action: GameAction): ReduceResult {
@@ -280,11 +267,10 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       // Filter out the duel choice from the target's hand so they don't lose that one
       const stealableCards = target.hand.filter((a) => a.id !== target.duelChoice)
       if (stealableCards.length === 0) {
-        // Nothing to steal; finalize round
-        const finalResultsNoSteal = scoreAll(state.players, state.globalChallenge ?? emptyStats())
-        state.results = finalResultsNoSteal
-        state.phase = "results"
-        finishRoundAndMaybeAdvance(state, feed)
+        // Nothing to steal; proceed to choose_challenge directly
+        state.phase = "choose_challenge"
+        const winnerName = state.players.find((p) => p.id === state.winnerId)?.name ?? "El ganador"
+        feed.push(`Fase de selección de desafío: ${winnerName} puede elegir un desafío usado para conservarlo.`)
         break
       }
 
@@ -304,11 +290,54 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       // Almacenar la carta robada para la siguiente ronda
       state.stolenCard = chosenCard
 
-      // Recalculate scores and winner, then finalize round
-      const finalResults = scoreAll(state.players, state.globalChallenge ?? emptyStats())
-      state.results = finalResults
-      state.phase = "results"
-      finishRoundAndMaybeAdvance(state, feed)
+      // Proceed directly to choose_challenge
+      state.phase = "choose_challenge"
+      const winnerName = state.players.find((p) => p.id === state.winnerId)?.name ?? "El ganador"
+      feed.push(`Fase de selección de desafío: ${winnerName} puede elegir un desafío usado para conservarlo.`)
+      break
+    }
+    case "choose_challenge": {
+      if (state.phase !== "choose_challenge") break
+      if (action.playerId !== state.winnerId) break
+
+      const chosen = action.challengeId
+        ? state.usedChallenges?.find((c) => c.id === action.challengeId) ?? null
+        : null
+
+      state.keptChallenge = chosen
+      const winnerName = state.players.find((p) => p.id === state.winnerId)?.name ?? "El ganador"
+      if (chosen) {
+        feed.push(`${winnerName} decidió conservar el desafío "${chosen.nombre}".`)
+      } else {
+        feed.push(`${winnerName} decidió no conservar ningún desafío.`)
+      }
+
+      // Procedemos normalmente a la nueva ronda (pero conservando la carta/desafío elegidos)
+      const startingId = state.winnerId ?? null
+      state.roundNumber += 1
+      state.matchRoundNumber += 1
+
+      // Reset de campos de la ronda previa
+      state.activePlayerId = startingId
+      state.duelWinnerId = null
+      state.bajoBy = null
+      state.results = null
+      state.bajoSuccess = null
+      state.globalChallenge = null
+      state.globalChallengeCards = []
+      state.usedChallenges = []
+      state.round = 0
+
+      if (state.stolenCard) {
+        state.phase = "new_round_setup"
+        feed.push(`Comienza la ronda ${state.roundNumber}. ${state.players.find(p => p.id === startingId)?.name ?? "El ganador"} decide si conserva la carta robada.`)
+      } else {
+        state.players = dealNewRound(state.players, startingId, false, null, state.keptChallenge)
+        state.keptChallenge = null
+        state.winnerId = null
+        state.phase = "duel"
+        feed.push(`Comienza la ronda ${state.roundNumber}. Elijan su atributo para el Duelo.`)
+      }
       break
     }
     case "start_new_round": {
@@ -329,9 +358,15 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
           feed.push(`¡Fase de robo activada! ${winnerName} debe elegir a un jugador para robarle una carta.`)
           break // Detenemos aquí para que la UI muestre la pantalla de robo
         }
+
+        // Si no hay robo posible, vamos directo a elegir el desafío
+        state.phase = "choose_challenge"
+        const winnerName = state.players.find((p) => p.id === winnerId)?.name ?? "El ganador"
+        feed.push(`Fase de selección de desafío: ${winnerName} puede elegir un desafío usado para conservarlo.`)
+        break
       }
 
-      // 2. Si no hay robo posible (o ya se ejecutó), procedemos normalmente a la nueva ronda
+      // 2. Si no hay ganador, procedemos normalmente a la nueva ronda sin robos ni conservación
       const startingId = state.winnerId ?? null
       state.roundNumber += 1
       state.matchRoundNumber += 1
@@ -344,17 +379,14 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
       state.bajoSuccess = null
       state.globalChallenge = null
       state.globalChallengeCards = []
+      state.usedChallenges = []
+      state.keptChallenge = null
       state.round = 0
 
-      if (state.stolenCard) {
-        state.phase = "new_round_setup"
-        feed.push(`Comienza la ronda ${state.roundNumber}. ${state.players.find(p => p.id === startingId)?.name ?? "El ganador"} decide si conserva la carta robada.`)
-      } else {
-        state.players = dealNewRound(state.players, startingId, false, null)
-        state.winnerId = null
-        state.phase = "duel"
-        feed.push(`Comienza la ronda ${state.roundNumber}. Elijan su atributo para el Duelo.`)
-      }
+      state.players = dealNewRound(state.players, startingId, false, null, null)
+      state.winnerId = null
+      state.phase = "duel"
+      feed.push(`Comienza la ronda ${state.roundNumber}. Elijan su atributo para el Duelo.`)
       break
     }
     case "keep_stolen": {
@@ -363,10 +395,12 @@ export function applyAction(prev: GameState, action: GameAction): ReduceResult {
 
       const keep = action.keep
       const stolen = state.stolenCard
+      const keptChallenge = state.keptChallenge ?? null
       const startingId = state.winnerId
 
-      state.players = dealNewRound(state.players, startingId, keep, stolen)
+      state.players = dealNewRound(state.players, startingId, keep, stolen, keptChallenge)
       state.stolenCard = null
+      state.keptChallenge = null
       state.winnerId = null // clear winnerId now that cards are dealt
 
       state.phase = "global_challenge"

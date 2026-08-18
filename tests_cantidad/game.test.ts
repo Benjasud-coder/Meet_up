@@ -252,6 +252,25 @@ describe("🧪 SUITE COMPLETA DE PRUEBAS DE LÓGICA DE JUEGO", () => {
             expect(ganador.hand).toHaveLength(0)
             expect(perdedor.hand).toHaveLength(0)
         })
+
+        it("El ganador puede elegir conservar un desafío y la ronda avanza", () => {
+            const state = startGame("SALA_602", mockMembers)
+            state.phase = "choose_challenge"
+            state.winnerId = "player_1"
+            const challenge = { id: "ch_test", nombre: "Desafio Test", tipo: "Específico" as const, stats: { espiritual: 1, intelectual: 1, fisica: 1, social: 1 } }
+            state.usedChallenges = [challenge]
+
+            const { state: nextState } = applyAction(state, {
+                type: "choose_challenge",
+                playerId: "player_1",
+                challengeId: "ch_test",
+            })
+
+            expect(nextState.keptChallenge).toBeNull()
+            const p1 = nextState.players.find(p => p.id === "player_1")
+            expect(p1?.tableChallenges.some(c => c.id === "ch_test")).toBe(true)
+            expect(nextState.phase).toBe("duel") // ya que stolenCard es null
+        })
     })
 
     // =========================================================================

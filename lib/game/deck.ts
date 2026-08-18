@@ -139,7 +139,8 @@ export function dealNewRound(
   players: PlayerState[],
   winnerId: string | null,
   keepStolen: boolean,
-  stolenCard: AttributeCard | null
+  stolenCard: AttributeCard | null,
+  keptChallenge: ChallengeCard | null
 ): PlayerState[] {
   const attributes = shuffle(ATTRIBUTES)
   const challenges = shuffle(CHALLENGES)
@@ -150,6 +151,7 @@ export function dealNewRound(
   return players.map((p) => {
     const isWinner = p.id === winnerId
     const shouldKeep = isWinner && keepStolen && !!stolenCard
+    const shouldKeepChallenge = isWinner && !!keptChallenge
 
     const countToDeal = shouldKeep ? 3 : ATTRIBUTES_DEALT //fix 5 cartas?
 
@@ -162,8 +164,13 @@ export function dealNewRound(
       tableAttributes.push(stolenCard)
     }
 
-    const tableChallenges = challenges.slice(chIdx, chIdx + CHALLENGES_DEALT)
-    chIdx += CHALLENGES_DEALT
+    const countChallengesToDeal = shouldKeepChallenge ? 1 : CHALLENGES_DEALT
+    const tableChallenges = challenges.slice(chIdx, chIdx + countChallengesToDeal)
+    chIdx += countChallengesToDeal
+
+    if (shouldKeepChallenge && keptChallenge) {
+      tableChallenges.push(keptChallenge)
+    }
 
     return {
       ...p,

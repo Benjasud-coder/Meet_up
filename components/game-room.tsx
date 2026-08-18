@@ -7,6 +7,7 @@ import { Lobby } from "./lobby"
 import { GameBoard } from "./game/game-board"
 import { SelectionModal } from "./game/selection-modal"
 import { StealModal } from "./game/steal-modal"
+import { ChooseChallengeModal } from "./game/choose-challenge-modal"
 import { KeepStolenModal } from "./game/keep-stolen-modal"
 import { ResultsModal } from "./game/results-modal"
 import { EventFeed } from "./game/event-feed"
@@ -117,6 +118,16 @@ export function GameRoom({
           me={me}
           onSteal={(targetPlayerId) =>
             room.dispatch({ type: "steal", playerId, targetPlayerId })
+          }
+        />
+      )}
+
+      {gameState.phase === "choose_challenge" && (
+        <ChooseChallengeModal
+          state={gameState}
+          me={me}
+          onChoose={(challengeId) =>
+            room.dispatch({ type: "choose_challenge", playerId, challengeId })
           }
         />
       )}

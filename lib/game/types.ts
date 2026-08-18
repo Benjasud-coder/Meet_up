@@ -31,6 +31,7 @@ export type GamePhase =
   | "global_challenge"
   | "playing"
   | "steal"
+  | "choose_challenge"
   | "new_round_setup"
   | "results"
 
@@ -73,6 +74,8 @@ export interface GameState {
   globalChallenge: Stats | null
   /** Names of the challenge cards that formed the global challenge. */
   globalChallengeCards: { name: string; tipo: ChallengeType }[]
+  usedChallenges?: ChallengeCard[]
+  keptChallenge?: ChallengeCard | null
   duelWinnerId: string | null
   /** id of the player who called BAJO. */
   bajoBy: string | null
